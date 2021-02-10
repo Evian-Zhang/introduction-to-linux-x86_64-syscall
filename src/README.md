@@ -143,3 +143,14 @@ SYSCALL_DEFINE3(open, const char __user *, filename, int, flags, umode_t, mode)
 * 第一个参数的类型是`const char __user *`，参数名为`filename`
 * 第二个参数的类型是`int`，参数名是`flags`
 * 第三个参数的类型是`umode_t`，参数名是`mode`
+
+## 系统调用对照表
+
+每个系统调用名都超链接到了其在本仓库中对应的文章。
+
+| 名称            | 系统调用号 | 头文件     | 内核实现          |
+| --------------- | ---------- | ---------- | ----------------- |
+| [`read`](./read-pread-readahead.md)      | 0          | `unistd.h` | `fs/read_write.c` |
+| [`pread64`](./read-pread-readahead.md)   | 17         | `unistd.h` | `fs/read_write.c` |
+| [`readahead`](./read-pread-readahead.md) | 187        | `fcntl.h`  | `fs/read_write.c` |
+
