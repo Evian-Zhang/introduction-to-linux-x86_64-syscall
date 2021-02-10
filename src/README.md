@@ -1,18 +1,8 @@
 # Linux x86_64系统调用简介
 
-如果要对Linux上的恶意软件进行细致地分析，或者想了解Linux内核，又或是想对Linux内核做进一步的定制，那么了解Linux的全部系统调用就是一个很好的帮助。在分析Linux上的恶意软件时，如果对Linux的系统调用不了解，那么往往会忽视某些重要的关键细节。因此，在充分了解Linux的系统调用之后，就能做到有的放矢，更好地达到我们的需求。
-
-本仓库将详细记录每个Linux x86_64系统调用的功能、用法与实现细节。
-
-## 环境
-
-所有实现细节均基于[v5.4版本的Linux内核](https://github.com/torvalds/linux/tree/v5.4)，系统调用列表位于`arch/x86/entry/syscalls/syscall_64.tbl`。功能、用法基于其相应的manual page，可在[man7.org](https://www.man7.org/linux/man-pages/)中查看。涉及到验证代码的，则会在Ubuntu 20.04中进行验证。
-
-## 背景知识介绍
-
 在本仓库中，如无特殊说明，处理器指令集默认为x86_64指令集。
 
-### 系统调用简介
+## 系统调用简介
 
 在Linux中，内核提供一些操作的接口给用户态的程序使用，这就是系统调用。对于用户态的程序，其调用相应的接口的方式，是一条汇编指令`syscall`。
 
@@ -25,7 +15,7 @@ syscall
 
 `syscall`这个指令会先查看此时RAX的值，然后找到系统调用号为那个值的系统调用，然后执行相应的系统调用。我们可以在系统调用列表中找到，`fork`这个系统调用的系统调用号是57。于是，我们把57放入`rax`寄存器中，然后使用了`syscall`指令。这就是让内核执行了`fork`。
 
-### 调用约定
+## 调用约定
 
 提到这个，就不得不说Linux x86_64的调用约定。我们知道，系统调用往往会有许多参数，比如说`open`这个打开文件的系统操作，我们可以在`include/linux/syscall.h`中找到其对应的C语言接口为
 
@@ -67,7 +57,7 @@ asmlinkage long sys_open(const char *pathname, int flags, mode_t mode);
 
 当函数前面有这个标签时，编译器编译出的可执行程序就会认为是按内核接口的调用约定对这个函数进行调用的。详情可以看[FAQ/asmlinkage](https://kernelnewbies.org/FAQ/asmlinkage)。
 
-### glibc封装
+## glibc封装
 
 当然，我们平时写的代码中，99%不会直接用到上述的系统调用方法。当我们真的去写一个C程序时：
 
@@ -125,7 +115,7 @@ gcc syscall-wrapper-test.c -static -o syscall-wrapper-test
 
 对glibc的动态链接和静态链接各有利弊。对于恶意软件编写者来说，他们往往倾向于静态链接恶意软件。这是因为，分析者可以轻松地写一个动态链接库，将其使用的glibc中的API hook住，改变其行为，使它达不成目的。而如果静态链接，那么分析者只有通过修改内核等比较麻烦的方案才能改变其行为。而静态链接的坏处则在于，如果简单地使用`-static`选项进行静态链接，就是把整个库都链接进最终的可执行程序中。这会导致库中许多没有被用到的函数的代码也在可执行程序中，使可执行程序的体积增大。解决方案可以参考gcc的官方文档[Compilation-options](https://gcc.gnu.org/onlinedocs/gnat_ugn/Compilation-options.html)。
 
-### 内核接口
+## 内核接口
 
 我们之前提到，在Linux内核中，可以在`include/linux/syscall.h`文件中找到系统调用函数的声明（会加上`sys_`前缀）。而其实现则是使用`SYSCALL_DEFINEn`这个宏。比如说，我们在`fs/open.c`中可以看到
 
@@ -143,14 +133,3 @@ SYSCALL_DEFINE3(open, const char __user *, filename, int, flags, umode_t, mode)
 * 第一个参数的类型是`const char __user *`，参数名为`filename`
 * 第二个参数的类型是`int`，参数名是`flags`
 * 第三个参数的类型是`umode_t`，参数名是`mode`
-
-## 系统调用对照表
-
-每个系统调用名都超链接到了其在本仓库中对应的文章。
-
-| 名称            | 系统调用号 | 头文件     | 内核实现          |
-| --------------- | ---------- | ---------- | ----------------- |
-| [`read`](./read-pread-readahead.md)      | 0          | `unistd.h` | `fs/read_write.c` |
-| [`pread64`](./read-pread-readahead.md)   | 17         | `unistd.h` | `fs/read_write.c` |
-| [`readahead`](./read-pread-readahead.md) | 187        | `fcntl.h`  | `fs/read_write.c` |
-
