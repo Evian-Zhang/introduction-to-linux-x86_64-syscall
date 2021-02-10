@@ -6,7 +6,7 @@
 
 ## 环境
 
-所有实现细节均基于[v5.4版本的Linux内核](https://github.com/torvalds/linux/tree/v5.4)，系统调用列表位于`arch/x86/entry/syscalls/syscall_64.tbl`。功能、用法基于其相应的manual page，可在[man7.org](https://www.man7.org/linux/man-pages/)中查看。涉及到验证代码的，则会在Ubuntu 20.04中进行验证。
+所有实现细节均基于[v5.4版本的Linux内核](https://github.com/torvalds/linux/tree/v5.4)，系统调用列表位于`arch/x86/entry/syscalls/syscall_64.tbl`。功能、用法基于其相应的manual page，可在[man7.org](https://www.man7.org/linux/man-pages/)中查看。涉及到验证代码的，则会在Ubuntu 20.04中进行验证，glibc版本为2.31。
 
 
 ## 系统调用对照表
@@ -15,6 +15,8 @@
 
 | 名称            | 系统调用号 | 头文件     | 内核实现          |
 | --------------- | ---------- | ---------- | ----------------- |
-| [`read`](src/read-pread64-readahead.md)      | 0          | `unistd.h` | `fs/read_write.c` |
-| [`pread64`](src/read-pread64-readahead.md)   | 17         | `unistd.h` | `fs/read_write.c` |
-| [`readahead`](src/read-pread64-readahead.md) | 187        | `fcntl.h`  | `fs/read_write.c` |
+| [`read`](src/read-pread64-readv-preadv-preadv2.md)      | 0          | `unistd.h` | `fs/read_write.c` |
+| [`pread64`](src/read-pread64-readv-preadv-preadv2.md)   | 17         | `unistd.h` | `fs/read_write.c` |
+|[`readv`](src/read-pread64-readv-preadv-preadv2.md)|19|`sys/uio.h`|`fs/read_write.c`|
+|[`preadv`](src/read-pread64-readv-preadv-preadv2.md)|295|`sys/uio.h`|`fs/read_write.c`|
+|[`preadv2`](src/read-pread64-readv-preadv-preadv2.md)|327|`sys/uio.h`|`fs/read_write.c`|
