@@ -56,13 +56,13 @@ asmlinkage long sys_open(const char __user *filename, int flags, umode_t mode);
 这个规范就称为内核接口的调用约定，可以从第一点就显著地看到，这个调用约定与用户态的程序是不同的。也就是说，如果我们用编译器直接编译
 
 ```c
-int sys_open(const char *pathname, int flags, mode_t mode);
+long sys_open(const char *pathname, int flags, mode_t mode);
 ```
 
 那么，编译出来的可执行程序会认为，这个函数是用户态函数，其传参仍然是按 `%rdi`, `%rsi`, `%rdx`, `%rcx`, `%r8`, `%r9`的顺序，与内核接口不符。因此，gcc提供了一个标签`asmlinkage`来标记这个函数是内核接口的调用约定：
 
 ```c
-asmlinkage int sys_open(const char *pathname, int flags, mode_t mode);
+asmlinkage long sys_open(const char *pathname, int flags, mode_t mode);
 ```
 
 当函数前面有这个标签时，编译器编译出的可执行程序就会认为是按内核接口的调用约定对这个函数进行调用的。详情可以看[FAQ/asmlinkage](https://kernelnewbies.org/FAQ/asmlinkage)。
