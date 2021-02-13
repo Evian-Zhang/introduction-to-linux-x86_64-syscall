@@ -8,12 +8,14 @@
 
 ### 函数签名
 
+#### 内核接口
+
 ```c
 asmlinkage long sys_read(unsigned int fd, char __user *buf, size_t count);
 asmlinkage long sys_pread64(unsigned int fd, char __user *buf, size_t count, loff_t pos);
 ```
 
-glibc封装后为
+#### glibc封装
 
 ```c
 #include <unistd.h>

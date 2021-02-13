@@ -13,10 +13,12 @@
 
 每个系统调用名都超链接到了其在本仓库中对应的文章。
 
-| 名称            | 系统调用号 | 头文件     | 内核实现          |
-| --------------- | ---------- | ---------- | ----------------- |
-| [`read`](src/read-pread64-readv-preadv-preadv2.md)      | 0          | `unistd.h` | `fs/read_write.c` |
-| [`pread64`](src/read-pread64-readv-preadv-preadv2.md)   | 17         | `unistd.h` | `fs/read_write.c` |
+|名称|系统调用号|头文件|内核实现|
+|-|-|-|-|
+|[`read`](src/read-pread64-readv-preadv-preadv2.md)|0|`unistd.h`|`fs/read_write.c`|
+|[`write`](src/write-pwrite64-writev-pwritev-pwritev2.md)|1|`unistd.h`|`fs/read_write.c`|
+|[`pread64`](src/read-pread64-readv-preadv-preadv2.md)|17|`unistd.h`|`fs/read_write.c`|
+|[`pwrite64`](src/write-pwrite64-writev-pwritev-pwritev2.md)|18|`unistd.h`|`fs/read_write.c`|
 |[`readv`](src/read-pread64-readv-preadv-preadv2.md)|19|`sys/uio.h`|`fs/read_write.c`|
 |[`preadv`](src/read-pread64-readv-preadv-preadv2.md)|295|`sys/uio.h`|`fs/read_write.c`|
 |[`preadv2`](src/read-pread64-readv-preadv-preadv2.md)|327|`sys/uio.h`|`fs/read_write.c`|
