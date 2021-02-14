@@ -8,7 +8,7 @@
 
 比如说，创建子进程的操作，Linux内核提供了`fork`这个系统调用作为接口。那么，如果用户态程序想调用这个内核提供的接口，其对应的汇编语句为（部分）
 
-```assembly
+```x86asm
 movq $57, %rax
 syscall
 ```
@@ -79,7 +79,7 @@ gcc syscall-wrapper-test.c -S -o syscall-wrapper-test.S
 
 只能看到这个指令：
 
-```assembly
+```x86asm
 callq fork
 ```
 
@@ -99,11 +99,32 @@ ldd syscall-wrapper-list
 
 查看其链接的动态链接库，就会看到
 
-```
+```plaintext
 libc.so.6 => /lib/x86_64-linux-gnu/libc.so.6
 ```
 
 而glibc则提供了许多系统调用的封装。这使我们在编写程序的时候，并不需要直接和内核进行交互，而是借用glibc这层封装，更加安全、稳定地使用。关于glibc对系统调用的封装，详情请见官方文档[SyscallWrappers](https://sourceware.org/glibc/wiki/SyscallWrappers)。
+
+此外，glibc还提供一个特殊的封装——`syscall`:
+
+```c
+#include <unistd.h>
+long syscall(long number, ...);
+```
+
+这可以看作汇编指令`syscall`的封装。比如说，我们想自己实现一个`open`函数：
+
+```c
+#include <unistd.h>
+#include <sys/syscall.h>
+#include <sys/types.h>
+
+long my_open(const char *pathname, int flags, mode_t mode) {
+    return syscall(SYS_open, pathname, flags, mode);
+}
+```
+
+其中，`SYS_open`为一个宏，定义在`sys/syscall.h`头文件中，其值为2，也就是`open`系统调用的系统调用号。
 
 当然，如果真的想在可执行程序中直接对内核进行系统调用，可以把glibc静态链接：
 

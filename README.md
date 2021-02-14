@@ -20,5 +20,8 @@
 |[`pread64`](src/read-pread64-readv-preadv-preadv2.md)|17|`unistd.h`|`fs/read_write.c`|
 |[`pwrite64`](src/write-pwrite64-writev-pwritev-pwritev2.md)|18|`unistd.h`|`fs/read_write.c`|
 |[`readv`](src/read-pread64-readv-preadv-preadv2.md)|19|`sys/uio.h`|`fs/read_write.c`|
+|[`writev`](src/write-pwrite64-writev-pwritev-pwritev2.md)|20|`sys/uio.h`|`fs/read_write.c`|
 |[`preadv`](src/read-pread64-readv-preadv-preadv2.md)|295|`sys/uio.h`|`fs/read_write.c`|
+|[`pwritev`](src/write-pwrite64-writev-pwritev-pwritev2.md)|296|`sys/uio.h`|`fs/read_write.c`|
 |[`preadv2`](src/read-pread64-readv-preadv-preadv2.md)|327|`sys/uio.h`|`fs/read_write.c`|
+|[`pwritev2`](src/write-pwrite64-writev-pwritev-pwritev2.md)|328|`sys/uio.h`|`fs/read_write.c`|

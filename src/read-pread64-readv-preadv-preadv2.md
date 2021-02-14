@@ -6,7 +6,7 @@
 
 `read`的系统调用号为0, `pread64`的系统调用号为17。
 
-### 函数签名
+### 函数原型
 
 #### 内核接口
 
@@ -31,7 +31,7 @@ ssize_t pread(int fd, void *buf, size_t count, off_t offset);
 
 首先，是从哪开始读。`pread64`没有问题，就是从`offset`的位置开始读。而对于`read`，如果它读取的句柄对应的文件支持seek，那么它是从文件句柄中存储的文件偏移（file offset）处继续读。假设我们的文件对应的二进制数据为
 
-```
+```plaintext
 1F 2E 3D 4C 5B 6A
 ```
 
@@ -153,7 +153,7 @@ ssize_t ksys_pread64(unsigned int fd, char __user *buf, size_t count, loff_t pos
 
 `readv`为19，`preadv`为295，`preadv2`为327。
 
-### 函数签名
+### 函数原型
 
 ```c
 asmlinkage long sys_readv(unsigned long fd, const struct iovec __user *vec, unsigned long vlen);
