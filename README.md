@@ -17,10 +17,12 @@
 |-|-|-|-|
 |[`read`](src/read-pread64-readv-preadv-preadv2.md)|0|`unistd.h`|`fs/read_write.c`|
 |[`write`](src/write-pwrite64-writev-pwritev-pwritev2.md)|1|`unistd.h`|`fs/read_write.c`|
+|[`open`](src/open-openat-name_to_handle_at-open_by_handle_at-open_tree.md)|2|`fcntl.h`|`fs/open.c`|
 |[`pread64`](src/read-pread64-readv-preadv-preadv2.md)|17|`unistd.h`|`fs/read_write.c`|
 |[`pwrite64`](src/write-pwrite64-writev-pwritev-pwritev2.md)|18|`unistd.h`|`fs/read_write.c`|
 |[`readv`](src/read-pread64-readv-preadv-preadv2.md)|19|`sys/uio.h`|`fs/read_write.c`|
 |[`writev`](src/write-pwrite64-writev-pwritev-pwritev2.md)|20|`sys/uio.h`|`fs/read_write.c`|
+|[`openat`](src/open-openat-name_to_handle_at-open_by_handle_at-open_tree.md)|257|`fcntl.h`|`fs/open.c`|
 |[`preadv`](src/read-pread64-readv-preadv-preadv2.md)|295|`sys/uio.h`|`fs/read_write.c`|
 |[`pwritev`](src/write-pwrite64-writev-pwritev-pwritev2.md)|296|`sys/uio.h`|`fs/read_write.c`|
 |[`preadv2`](src/read-pread64-readv-preadv-preadv2.md)|327|`sys/uio.h`|`fs/read_write.c`|
