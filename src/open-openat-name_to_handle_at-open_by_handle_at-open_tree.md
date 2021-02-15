@@ -40,7 +40,7 @@ int openat(int dirfd, const char *pathname, int flags, mode_t mode);
   * `open`打开相对于当前目录，路径为`filename`的文件
   * `openat`打开相对于`dfd`对应的目录，路径为`filename`的文件；若`dfd`是定义在`fcntl.h`中的宏`AT_FDCWD`，则打开相对于当前目录，路径为`filename`的文件。
 
-接着，是“怎么打开”的问题。`open`和`openat`的参数`flags`, `mode`控制了打开文件的行为。
+接着，是“怎么打开”的问题。`open`和`openat`的参数`flags`, `mode`控制了打开文件的行为（`mode`详情请见`creat`系统调用。TODO：增加超链接）。
 
 #### flags
 
@@ -97,6 +97,9 @@ POSIX标准要求在打开文件时，必须且只能使用上述标志位中的
 * `O_CREAT`
   * 当`filename`路径不存在时，创建相应的文件。
   * 使用此标志时，`mode`参数将作为创建的文件的文件模式标志位。详情请见`creat`系统调用。TODO: 增加超链接
+* `O_EXCL`
+  * 该标志位一般会与`O_CREAT`搭配使用。
+  * 如果`filename`路径存在相应的文件（包括软链接），则`open`会失败。
 * `O_DIRECTORY`
   * 如果`filename`路径不是一个目录，则失败。
   * 这个标志位是用来替代`opendir`函数的。TODO: 解释其受拒绝服务攻击的原理。
@@ -110,8 +113,108 @@ POSIX标准要求在打开文件时，必须且只能使用上述标志位中的
 * `O_APPEND`
   * 使用此标志位时，在后续每一次`write`操作前，会将文件偏移移至文件末尾。（详情请见[write](./write-pwrite64-writev-pwritev-pwritev2.md)）。
 * `O_ASYNC`
-  * 使用信号驱动的IO。后续的IO操作将立即返回，同时在IO操作完成时发出相应的信号。TODO: 详细解释
+  * 使用信号驱动的IO。后续的IO操作将立即返回，同时在IO操作完成时发出相应的信号。
+  * 这种方式在异步IO模式中较少使用，主要由于这种基于中断的信号处理机制比系统调用的耗费更大，并且无法处理多个文件句柄同时完成IO操作。参考[What's the difference between async and nonblocking in unix socket?](https://stackoverflow.com/a/6260132/10005095)。
+  * 对正常文件的句柄无效，对套接字等文件句柄有效。
+* `O_NONBLOCK`
+  * 后续的IO操作立即返回，而不是等IO操作完成后返回。
+  * 对正常文件的句柄无效，对套接字等文件句柄有效。
 * `O_SYNC`与`O_DSYNC`
   * 使用`O_SYNC`时，每一次`write`操作结束前，都会将文件内容和元信息写入相应的硬件。
   * 使用`O_DSYNC`时，每一次`write`操作结束前，都会将文件内容写入相应的硬件（不保证元信息）。
   * 这两种方法可以看作是在每一次`write`操作后使用`fsync`。
+* `O_PATH`
+  * 仅以文件句柄层次打开相应的文件。详情见下方`open_tree`系统调用的描述。
+
+#### 其他注意点
+
+此外，还有一些需要注意的。
+
+在新的Linux内核（版本不低于2.26）中，glibc的封装`open`底层调用的是`openat`系统调用而不是`open`系统调用（`dfd`为`AT_FDCWD`）。
+
+### 实现
+
+`open`和`openat`的实现均位于`fs/open.c`文件中，与其相关的函数是`do_sys_open`:
+
+```c
+long do_sys_open(int dfd, const char __user *filename, int flags, umode_t mode)
+{
+	struct open_flags op;
+	int fd = build_open_flags(flags, mode, &op);
+	struct filename *tmp;
+
+	if (fd)
+		return fd;
+
+	tmp = getname(filename);
+	if (IS_ERR(tmp))
+		return PTR_ERR(tmp);
+
+	fd = get_unused_fd_flags(flags);
+	if (fd >= 0) {
+		struct file *f = do_filp_open(dfd, tmp, &op);
+		if (IS_ERR(f)) {
+			put_unused_fd(fd);
+			fd = PTR_ERR(f);
+		} else {
+			fsnotify_open(f);
+			fd_install(fd, f);
+		}
+	}
+	putname(tmp);
+	return fd;
+}
+```
+
+由其实现可知，无论路径是否一样，`flag`是否相同，`open`总会使用新的文件句柄。也就是说：
+
+```c
+int a = open("./text.txt", O_RDONLY);
+int b = open("./text.txt", O_RDONLY);
+```
+
+尽管调用参数一样，`a`和`b`依然是不同的。
+
+此外，这个函数调用了`do_filp_open`函数作为真正的操作，而其核心是实现在`fs/namei.c`的函数`path_openat`:
+
+```c
+static struct file *path_openat(struct nameidata *nd, const struct open_flags *op, unsigned flags)
+{
+	struct file *file;
+	int error;
+
+	file = alloc_empty_file(op->open_flag, current_cred());
+	if (IS_ERR(file))
+		return file;
+
+	if (unlikely(file->f_flags & __O_TMPFILE)) {
+		error = do_tmpfile(nd, flags, op, file);
+	} else if (unlikely(file->f_flags & O_PATH)) {
+		error = do_o_path(nd, flags, file);
+	} else {
+		const char *s = path_init(nd, flags);
+		while (!(error = link_path_walk(s, nd)) &&
+			(error = do_last(nd, file, op)) > 0) {
+			nd->flags &= ~(LOOKUP_OPEN|LOOKUP_CREATE|LOOKUP_EXCL);
+			s = trailing_symlink(nd);
+		}
+		terminate_walk(nd);
+	}
+	if (likely(!error)) {
+		if (likely(file->f_mode & FMODE_OPENED))
+			return file;
+		WARN_ON(1);
+		error = -EINVAL;
+	}
+	fput(file);
+	if (error == -EOPENSTALE) {
+		if (flags & LOOKUP_RCU)
+			error = -ECHILD;
+		else
+			error = -ESTALE;
+	}
+	return ERR_PTR(error);
+}
+```
+
+可见对于大部分情况而言，就是按照软链接的路径找到最终的文件，然后用`do_last`打开文件。
