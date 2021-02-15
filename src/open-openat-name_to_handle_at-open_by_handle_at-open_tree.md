@@ -29,16 +29,16 @@ int openat(int dirfd, const char *pathname, int flags, mode_t mode);
 
 ### 简介
 
-我们知道，绝大多数文件相关的系统调用都是直接操作文件句柄（file descriptor），而`open`和`openat`这两个系统调用是一种创建文件句柄的方式。`open`系统调用将打开路径为`filename`的文件，而`openat`则将打开相对句柄为`dfd`的目录，路径为`filename`的文件。
+我们知道，绝大多数文件相关的系统调用都是直接操作文件描述符（file descriptor），而`open`和`openat`这两个系统调用是一种创建文件描述符的方式。`open`系统调用将打开路径为`filename`的文件，而`openat`则将打开相对描述符为`dirfd`的目录，路径为`filename`的文件。
 
 详细来说，`open`和`openat`的行为是
 
 * `filename`是绝对路径
   * `open`打开位于`filename`的文件
-  * `openat`打开位于`filename`的文件，忽略`dfd`
+  * `openat`打开位于`filename`的文件，忽略`dirfd`
 * `filename`是相对路径
   * `open`打开相对于当前目录，路径为`filename`的文件
-  * `openat`打开相对于`dfd`对应的目录，路径为`filename`的文件；若`dfd`是定义在`fcntl.h`中的宏`AT_FDCWD`，则打开相对于当前目录，路径为`filename`的文件。
+  * `openat`打开相对于`dirfd`对应的目录，路径为`filename`的文件；若`dirfd`是定义在`fcntl.h`中的宏`AT_FDCWD`，则打开相对于当前目录，路径为`filename`的文件。
 
 接着，是“怎么打开”的问题。`open`和`openat`的参数`flags`, `mode`控制了打开文件的行为（`mode`详情请见`creat`系统调用。TODO：增加超链接）。
 
@@ -48,11 +48,25 @@ int openat(int dirfd, const char *pathname, int flags, mode_t mode);
 
 ##### 文件访问模式标志（file access mode flag）
 
-* `O_RDONLY`<br/>以只读方式打开。创建的文件句柄不可写。
-* `O_WDONLY`<br/>以只写方式打开。创建的文件句柄不可读。
-* `O_RDWD`<br/>以读写方式打开。创建的文件句柄既可读也可写。
-* `O_EXEC`<br/>以只执行方式打开。创建的文件句柄只可以被执行。只能用于非目录路径。
-* `O_SEARCH`<br/>以只搜索方式打开。创建的文件句柄值可以被用于搜索。只能用于目录路径。
+* `O_RDONLY`
+
+    以只读方式打开。创建的文件描述符不可写。
+
+* `O_WDONLY`
+
+    以只写方式打开。创建的文件描述符不可读。
+
+* `O_RDWD`
+
+    以读写方式打开。创建的文件描述符既可读也可写。
+
+* `O_EXEC`
+
+    以只执行方式打开。创建的文件描述符只可以被执行。只能用于非目录路径。
+
+* `O_SEARCH`
+    
+	以只搜索方式打开。创建的文件描述符值可以被用于搜索。只能用于目录路径。
 
 POSIX标准要求在打开文件时，必须且只能使用上述标志位中的一个。而glibc的封装则要求在打开文件时，必须且只能使用前三个标志位（只读、只写、读写）中的一个。
 
@@ -61,76 +75,102 @@ POSIX标准要求在打开文件时，必须且只能使用上述标志位中的
 文件创建标志控制的是`open`和`openat`在打开文件时的行为。部分比较常见的标志位有：
 
 * `O_CLOEXEC`
-  * 文件句柄将在调用`exec`函数族时关闭。
-  * 我们知道，当一个Linux进程使用`fork`创建子进程后，父进程原有的文件句柄也会复制给子进程。而常见的模式是在`fork`之后使用`exec`函数族替换当前进程空间。此时，由于替换前的所有变量都不会被继承，所以文件句柄将丢失，而丢失之后就无法关闭相应的文件句柄，造成泄露。如[以下代码](https://github.com/Evian-Zhang/introduction-to-linux-x86_64-syscall/tree/master/codes/open-cloexec)：
-    ```c
-    #include <fcntl.h>
-    #include <unistd.h>
-
-    int main() {
-        int fd = open("./text.txt", O_RDONLY);
-        if (fork() == 0) {
-            // child process
-            char *const argv[] = {"./child", NULL};
-            execve("./child", argv, NULL); // fd left opened
-        } else {
-            // parent process
-            sleep(30);
-        }
-
-        return 0;
-    }
-    ```
-    其中`./child`在启动30秒后会自动退出。<br/>
-    在启动这个程序之后，我们使用`ps -aux | grep child`找到`child`对应的进程ID，然后使用
-      ```shell
-      readlink /proc/xxx/fd/yyy
-      ```
-    查看，其中`xxx`为进程ID，`yyy`是`fd`中的任意一个文件。我们调查`fd`中的所有文件，一定能发现一个文件句柄对应`text.txt`。也就是说，在执行`execve`之后，子进程始终保持着`text.txt`的句柄，且没有任何方法关闭它。
-  * 解决这个问题的方法一般有两种：
-    * 在`fork`之后，`execve`之前使用`close`关闭所有文件句柄。但是如果该进程在此之前创建了许多文件句柄，在这里就很容易漏掉，也不易于维护。
-    * 在使用`open`创建文件句柄时，加入`O_CLOEXEC`标志位：
+    * 文件描述符将在调用`exec`函数族时关闭。
+    * 我们知道，当一个Linux进程使用`fork`创建子进程后，父进程原有的文件描述符也会复制给子进程。而常见的模式是在`fork`之后使用`exec`函数族替换当前进程空间。此时，由于替换前的所有变量都不会被继承，所以文件描述符将丢失，而丢失之后就无法关闭相应的文件描述符，造成泄露。如[以下代码](https://github.com/Evian-Zhang/introduction-to-linux-x86_64-syscall/tree/master/codes/open-cloexec)：
       ```c
-      int fd = open("./text.txt", O_RDONLY | O_CLOEXEC);
+      #include <fcntl.h>
+      #include <unistd.h>
+
+      int main() {
+          int fd = open("./text.txt", O_RDONLY);
+          if (fork() == 0) {
+              // child process
+              char *const argv[] = {"./child", NULL};
+              execve("./child", argv, NULL); // fd left opened
+          } else {
+              // parent process
+              sleep(30);
+          }
+  
+          return 0;
+      }
       ```
-      通过这种方法，在子进程使用`execve`时，文件句柄会自动关闭。
+      其中`./child`在启动30秒后会自动退出。
+	
+      在启动这个程序之后，我们使用`ps -aux | grep child`找到`child`对应的进程ID，然后使用
+        ```shell
+        readlink /proc/xxx/fd/yyy
+        ```
+      查看，其中`xxx`为进程ID，`yyy`是`fd`中的任意一个文件。我们调查`fd`中的所有文件，一定能发现一个文件描述符对应`text.txt`。也就是说，在执行`execve`之后，子进程始终保持着`text.txt`的描述符，且没有任何方法关闭它。
+    * 解决这个问题的方法一般有两种：
+        * 在`fork`之后，`execve`之前使用`close`关闭所有文件描述符。但是如果该进程在此之前创建了许多文件描述符，在这里就很容易漏掉，也不易于维护。
+        * 在使用`open`创建文件描述符时，加入`O_CLOEXEC`标志位：
+          ```c
+          int fd = open("./text.txt", O_RDONLY | O_CLOEXEC);
+          ```
+          通过这种方法，在子进程使用`execve`时，文件描述符会自动关闭。
 * `O_CREAT`
-  * 当`filename`路径不存在时，创建相应的文件。
-  * 使用此标志时，`mode`参数将作为创建的文件的文件模式标志位。详情请见`creat`系统调用。TODO: 增加超链接
+    * 当`filename`路径不存在时，创建相应的文件。
+    * 使用此标志时，`mode`参数将作为创建的文件的文件模式标志位。详情请见`creat`系统调用。TODO: 增加超链接
 * `O_EXCL`
-  * 该标志位一般会与`O_CREAT`搭配使用。
-  * 如果`filename`路径存在相应的文件（包括软链接），则`open`会失败。
+    * 该标志位一般会与`O_CREAT`搭配使用。
+    * 如果`filename`路径存在相应的文件（包括软链接），则`open`会失败。
 * `O_DIRECTORY`
-  * 如果`filename`路径不是一个目录，则失败。
-  * 这个标志位是用来替代`opendir`函数的。TODO: 解释其受拒绝服务攻击的原理。
+    * 如果`filename`路径不是一个目录，则失败。
+    * 这个标志位是用来替代`opendir`函数的。TODO: 解释其受拒绝服务攻击的原理。
 * `O_TRUNC`
-  * 如果`filename`路径存在相应的文件，且以写的方式打开（即`O_WDONLY`或`O_RDWD`），那么将文件内容清空。
+    * 如果`filename`路径存在相应的文件，且以写的方式打开（即`O_WDONLY`或`O_RDWD`），那么将文件内容清空。
 
 ##### 文件状态标志（file status flag）
 
 文件状态标志控制的是打开文件后的后续IO操作。
 
 * `O_APPEND`
-  * 使用此标志位时，在后续每一次`write`操作前，会将文件偏移移至文件末尾。（详情请见[write](./write-pwrite64-writev-pwritev-pwritev2.md)）。
+    * 使用此标志位时，在后续每一次`write`操作前，会将文件偏移移至文件末尾。（详情请见[write](./write-pwrite64-writev-pwritev-pwritev2.md)）。
 * `O_ASYNC`
-  * 使用信号驱动的IO。后续的IO操作将立即返回，同时在IO操作完成时发出相应的信号。
-  * 这种方式在异步IO模式中较少使用，主要由于这种基于中断的信号处理机制比系统调用的耗费更大，并且无法处理多个文件句柄同时完成IO操作。参考[What's the difference between async and nonblocking in unix socket?](https://stackoverflow.com/a/6260132/10005095)。
-  * 对正常文件的句柄无效，对套接字等文件句柄有效。
+    * 使用信号驱动的IO。后续的IO操作将立即返回，同时在IO操作完成时发出相应的信号。
+    * 这种方式在异步IO模式中较少使用，主要由于这种基于中断的信号处理机制比系统调用的耗费更大，并且无法处理多个文件描述符同时完成IO操作。参考[What's the difference between async and nonblocking in unix socket?](https://stackoverflow.com/a/6260132/10005095)。
+    * 对正常文件的描述符无效，对套接字等文件描述符有效。
 * `O_NONBLOCK`
-  * 后续的IO操作立即返回，而不是等IO操作完成后返回。
-  * 对正常文件的句柄无效，对套接字等文件句柄有效。
+    * 后续的IO操作立即返回，而不是等IO操作完成后返回。
+    * 对正常文件的描述符无效，对套接字等文件描述符有效。
 * `O_SYNC`与`O_DSYNC`
-  * 使用`O_SYNC`时，每一次`write`操作结束前，都会将文件内容和元信息写入相应的硬件。
-  * 使用`O_DSYNC`时，每一次`write`操作结束前，都会将文件内容写入相应的硬件（不保证元信息）。
-  * 这两种方法可以看作是在每一次`write`操作后使用`fsync`。
-* `O_PATH`
-  * 仅以文件句柄层次打开相应的文件。详情见下方`open_tree`系统调用的描述。
+    * 使用`O_SYNC`时，每一次`write`操作结束前，都会将文件内容和元信息写入相应的硬件。
+    * 使用`O_DSYNC`时，每一次`write`操作结束前，都会将文件内容写入相应的硬件（不保证元信息）。
+    * 这两种方法可以看作是在每一次`write`操作后使用`fsync`。
+    * `O_PATH`
+    * 仅以文件描述符层次打开相应的文件。详情见下方`open_tree`系统调用的描述。
 
 #### 其他注意点
 
 此外，还有一些需要注意的。
 
-在新的Linux内核（版本不低于2.26）中，glibc的封装`open`底层调用的是`openat`系统调用而不是`open`系统调用（`dfd`为`AT_FDCWD`）。
+在新的Linux内核（版本不低于2.26）中，glibc的封装`open`底层调用的是`openat`系统调用而不是`open`系统调用（`dirfd`为`AT_FDCWD`）。
+
+### 用法
+
+我们在使用`open`和`openat`时，可以有如下的思考顺序：
+
+1. 打开文件的路径是绝对路径还是相对路径
+    * 绝对路径使用`open`
+    * 对于相对路径而言，如果相对于当前目录，则可以使用`open`，但大部分情况而言还是`openat`适用性更广（相对于当前目录可以传递`AT_FDCWD`给`dirfd`参数）
+2. 打开文件是否需要读、写
+	* 只需要读，`flags`加入标志位`O_RDONLY`
+	* 只需要写，`flags`加入标志位`O_WDONLY`
+	* 既需要读，又需要写，`flags`加入标志位`O_RDWD`
+3. 对于可能会产生子进程并使用`exec`函数族的程序，`flags`加入标志位`O_CLOEXEC`
+4. 如果需要对文件进行写入：
+	* 如果需要在写之前清空文件内容，`flags`加入标志位`O_TRUNC`
+	* 如果需要在文件末尾追加，`flags`加入标志位`O_APPEND`
+	* 如果文件不存在的时候需要创建文件，`flags`加入标志位`O_CREAT`，并且传递相应的文件模式标志位给`mode`
+
+以下几种都是合理的使用方式：
+
+```c
+int fd1 = open(filename, O_RDONLY);
+int fd2 = open(filename, O_RDWD | O_APPEND);
+int fd3 = open(filename, O_WDONLY | O_CLOEXEC | O_TRUNC);
+```
 
 ### 实现
 
@@ -166,7 +206,7 @@ long do_sys_open(int dfd, const char __user *filename, int flags, umode_t mode)
 }
 ```
 
-由其实现可知，无论路径是否一样，`flag`是否相同，`open`总会使用新的文件句柄。也就是说：
+由其实现可知，无论路径是否一样，`flag`是否相同，`open`总会使用新的文件描述符。也就是说：
 
 ```c
 int a = open("./text.txt", O_RDONLY);
@@ -218,3 +258,145 @@ static struct file *path_openat(struct nameidata *nd, const struct open_flags *o
 ```
 
 可见对于大部分情况而言，就是按照软链接的路径找到最终的文件，然后用`do_last`打开文件。
+
+## `name_to_handle_at`与`open_by_handle_at`
+
+### 系统调用号
+
+`name_to_handle_at`为303，`open_by_handle_at`为304。
+
+### 函数原型
+
+#### 内核接口
+
+```c
+asmlinkage long sys_name_to_handle_at(int dfd, const char __user *name, struct file_handle __user *handle, int __user *mnt_id, int flag);
+asmlinkage long sys_open_by_handle_at(int mountdirfd, struct file_handle __user *handle, int flags);
+```
+
+#### glibc封装
+
+```c
+#define _GNU_SOURCE
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+int name_to_handle_at(int dirfd, const char *pathname, struct file_handle *handle, int *mount_id, int flags);
+int open_by_handle_at(int mount_fd, struct file_handle *handle, int flags);
+```
+
+### 简介
+
+`name_to_handle_at`和`open_by_handle_at`将`openat`的功能解耦成两部分：
+
+```plaintext
+filename ----openat----> file descriptor
+filename ----name_to_handle_at----> file handle + mount id ----open_by_handle_at----> file descriptor
+```
+
+`openat`将输入的文件路径转化为文件描述符输出，而`name_to_handle_at`将输入的文件路径转化为文件句柄和挂载ID输出，而`open_by_handle_at`将输入的文件句柄和挂载ID转化为文件描述符输出。
+
+这样做看似多此一举，但是在构造无状态的文件服务器时很有用。假设我们的文件服务器是使用`openat`作为打开文件的方式：
+
+1. 方案一
+    * 步骤
+	    1. 服务器告诉客户端文件路径
+	    2. 客户端告诉服务器，想要修改的文件路径，和修改的内容
+	    3. 服务器使用`openat`打开相应文件路径，然后对文件进行修改
+    * 假设服务器告诉客户端我们的文件路径为`path/text.txt`，在客户端发送修改指令之前，又有另一个客户端将这个文件移动到了`path2/text.txt`，那么客户端的修改就失败了，因为`openat`无法打开相应的文件
+2. 方案二
+    * 步骤
+	    1. 服务器用`openat`打开文件路径，告诉客户端文件描述符
+	    2. 客户端告诉服务器，想要修改的文件描述符，和修改的内容
+	    3. 服务器对相应的文件描述符作出相应的修改
+    * 由于文件描述符在文件移动后依然有效，所以这么做确实可以避免方案一的问题。但是，我们的服务器就成了一个有状态的服务器。因为程序一旦挂掉，那么所有文件描述符都会失效
+
+因此，用`openat`并不能完美解决无状态文件服务器的问题。但是，我们用`name_to_handle_at`和`open_by_handle_at`的方案为：
+
+1. 服务器用`name_to_handle_at`打开文件路径，告诉客户端文件句柄和挂载ID
+2. 客户端告诉服务器，想要修改的文件句柄和挂载ID，和修改的内容
+3. 服务器使用`open_by_handle_at`打开相应的文件，获得文件描述符，进行进一步的修改
+
+这一方案和方案二看起来很类似，但实际上有一点不同：文件句柄和挂载ID是由操作系统维护的，而不需要服务器维护。也就是说，只要是在同一操作系统中，所有的进程通过文件句柄和挂载ID打开的文件一定相同。
+
+`name_to_handle_at`的具体行为，由`dirfd`, `pathname`和`flags`共同控制：
+
+* 如果`pathname`是绝对路径，则返回对应的文件句柄和挂载ID，忽略`dirfd`
+* 如果`pathname`是相对路径，则返回该路径相对于`dirfd`（若值为`AT_FDCWD`则是当前目录）对应的文件的文件句柄和挂载ID
+* 如果`pathname`解析出来是软链接，且`flags`包含标志位`AT_SYMLINK_FOLLOW`，则继续找该软链接引用的真实文件，并返回真实文件的文件句柄和挂载ID
+* 如果`pathname`为空字符串，且`flags`包含控制位`AT_EMPTY_PATH`，则返回对应于文件描述符`dirfd`的文件句柄和挂载ID（此时`dirfd`可以为任意文件类型的描述符，不一定是目录的文件描述符）
+
+`open_by_handle_at`的`flags`则和`openat`的`flags`含义相同，为打开文件的方式。
+
+### 用法
+
+`struct file_handle`的定义为
+
+```c
+struct file_handle {
+	unsigned int  handle_bytes;
+	int           handle_type;
+	unsigned char f_handle[0];
+};
+```
+
+其中`f_handle`字段是变长数组。当我们使用`name_to_handle_at`时，首先需要将`handle`的`handle_bytes`字段置0，传入后，`name_to_handle_at`将返回-1，同时`errno`会被置为`EOVERFLOW`，同时`handle`的`handle_bytes`字段会被置为其需要的大小，然后我们再根据这个大小分配相应的空间给`handle`，再次传入即可：
+
+```c
+char filename[] = "./text.txt";
+struct file_handle tmp_handle;
+tmp_handle.handle_bytes = 0;
+if (name_to_handle_at(filename, AT_FDCWD, &tmp_handle, NULL, 0) != -1 || errno != EOVERFLOW) {
+	exit(-1); // Unexpected behavior
+}
+char *buf = (char *)malloc(tmp_handle.handle_bytes);
+struct file_handle *handle = (struct file_handle *)buf;
+int mount_id;
+name_to_handle_at(filename, AT_FDCWD, handle, &mount_id, 0);
+```
+
+而`open_by_handle_at`则相对比较简单：
+
+```c
+int fd = open_by_handle_at(mount_id, handle, O_RDONLY);
+```
+
+### 实现
+
+`name_to_handle_at`和`open_by_handle_at`的实现均位于`fs/fhandle.c`中。`name_to_handle_at`的核心为位于`fs/exportfs/expfs.c`中的`exportfs_encode_inode_fh`:
+
+```c
+int exportfs_encode_inode_fh(struct inode *inode, struct fid *fid, int *max_len, struct inode *parent)
+{
+	const struct export_operations *nop = inode->i_sb->s_export_op;
+
+	if (nop && nop->encode_fh)
+		return nop->encode_fh(inode, fid->raw, max_len, parent);
+
+	return export_encode_fh(inode, fid, max_len, parent);
+}
+```
+
+`open_by_handle_at`的核心为位于`fs/exportfs/expfs.c`中的`exportfs_decode_fh`:
+
+```c
+struct dentry *exportfs_decode_fh(struct vfsmount *mnt, struct fid *fid, int fh_len, int fileid_type, int (*acceptable)(void *, struct dentry *), void *context)
+{
+	const struct export_operations *nop = mnt->mnt_sb->s_export_op;
+	// ...
+	result = nop->fh_to_dentry(mnt->mnt_sb, fid, fh_len, fileid_type);
+	// ...
+}
+```
+
+由此可见，其关键在于`export_operations`这个结构体。通过位于内核源码`Documentation/filesystems/nfs/exporting.rst`的文档我们可以知道：
+
+> encode_fh (optional)
+>
+>    Takes a dentry and creates a filehandle fragment which can later be used to find or create a dentry for the same object. The default implementation creates a filehandle fragment that encodes a 32bit inode and generation number for the inode encoded, and if necessary the same information for the parent.
+>
+> fh_to_dentry (mandatory)
+>
+>    Given a filehandle fragment, this should find the implied object and create a dentry for it (possibly with d_obtain_alias).
+
+用于产生文件句柄的`encode_fh`函数指针，其默认实现是和inode直接相关的，所以确实可以看作是由操作系统来维护这个文件句柄的。

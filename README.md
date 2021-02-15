@@ -25,5 +25,7 @@
 |[`openat`](src/open-openat-name_to_handle_at-open_by_handle_at-open_tree.md)|257|`fcntl.h`|`fs/open.c`|
 |[`preadv`](src/read-pread64-readv-preadv-preadv2.md)|295|`sys/uio.h`|`fs/read_write.c`|
 |[`pwritev`](src/write-pwrite64-writev-pwritev-pwritev2.md)|296|`sys/uio.h`|`fs/read_write.c`|
+|[`name_to_handle_at`](src/open-openat-name_to_handle_at-open_by_handle_at-open_tree.md)|303|`fcntl.h`|`fs/fhandle.c`|
+|[`open_by_handle_at`](src/open-openat-name_to_handle_at-open_by_handle_at-open_tree.md)|304|`fcntl.h`|`fs/fhandle.c`|
 |[`preadv2`](src/read-pread64-readv-preadv-preadv2.md)|327|`sys/uio.h`|`fs/read_write.c`|
 |[`pwritev2`](src/write-pwrite64-writev-pwritev-pwritev2.md)|328|`sys/uio.h`|`fs/read_write.c`|

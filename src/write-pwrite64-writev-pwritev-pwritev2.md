@@ -25,14 +25,19 @@ ssize_t pwrite(int fd, const void *buf, size_t count, off_t offset);
 
 ### 简介
 
-`write`和`pwrite`是最基础的对文件写入的系统调用。`write`会将`buf`中`count`个字节写入句柄为`fd`的文件中，而`pread`则会将`buf`中`count`个字节写入句柄为`fd`的文件从`offset`开始的位置中。如果写入成功，这两个系统调用都将返回写入的字节数。因此，这两个系统调用主要的区别就在于写入的位置，其它功能均类似。
+`write`和`pwrite`是最基础的对文件写入的系统调用。`write`会将`buf`中`count`个字节写入描述符为`fd`的文件中，而`pread`则会将`buf`中`count`个字节写入描述符为`fd`的文件从`offset`开始的位置中。如果写入成功，这两个系统调用都将返回写入的字节数。因此，这两个系统调用主要的区别就在于写入的位置，其它功能均类似。
 
 注意点：
 
 首先，是文件偏移的问题：
 
-* 写入前位置<br/>显然，`pwrite`是从文件偏移为`offset`的位置开始写入，但是`write`的问题则比较特殊。一般来说，`write`开始写入时的文件偏移就是当前的文件偏移，但是，当文件句柄是通过`open`系统调用创建，且创建时使用了`O_APPEND`标志位的话，每次`write`开始写入前，都会默认将文件偏移移到文件末尾。
-* 写入后位置<br/>同`read`和`pread`类似，`write`在成功写入n个字节后，会将文件偏移更新n个字节；但`pwrite`则不会更新文件偏移，因此和`pread`一起常用于多线程的代码中。
+* 写入前位置
+
+    显然，`pwrite`是从文件偏移为`offset`的位置开始写入，但是`write`的问题则比较特殊。一般来说，`write`开始写入时的文件偏移就是当前的文件偏移，但是，当文件描述符是通过`open`系统调用创建，且创建时使用了`O_APPEND`标志位的话，每次`write`开始写入前，都会默认将文件偏移移到文件末尾。
+
+* 写入后位置
+
+    同`read`和`pread`类似，`write`在成功写入n个字节后，会将文件偏移更新n个字节；但`pwrite`则不会更新文件偏移，因此和`pread`一起常用于多线程的代码中。
 
 我们可以通过[一个简单的程序](https://github.com/Evian-Zhang/introduction-to-linux-x86_64-syscall/tree/master/codes/write-pwrite)检测这个性质
 
@@ -94,12 +99,12 @@ File offset is 13.
 
 我们在同目录中有一个文本文件`text.txt`，它的内容为六字节长的字符串"123456"。
 
-* 首先，我们使用`O_APPEND`标志位创建文件句柄`fd_with_append`。
+* 首先，我们使用`O_APPEND`标志位创建文件描述符`fd_with_append`。
   1. 使用`read`读入4字节。在读入前文件偏移为0，读入成功4字节，文件偏移为4，且读入的字符串为"1234"。
   2. 使用`write`写入7字节长度字符串"payload"。在写入前，文件偏移被移至文件末尾6，因此成功写入7字节后，文件偏移为13。
   3. 使用`read`读入4字节。在读入前，文件偏移为13，处于文件末尾，无内容读入，所以读入字节为0，读入后文件偏移依然为13。
   4. 最终，`text.txt`的内容为"123456payload"。
-* 接着，我们不使用`O_APPEND`标志位创建文件句柄`fd_without_append`。
+* 接着，我们不使用`O_APPEND`标志位创建文件描述符`fd_without_append`。
   1. 使用`read`读入4字节。在读入前文件偏移为0，读入成功4字节，文件偏移为4，且读入的字符串为"1234"。
   2. 使用`write`写入7字节长度字符串"payload"。写入前文件偏移为4，写入成功7字节，文件偏移为11。此时`text.txt`的内容为"1234payloadad"。
   3. 使用`read`读入4字节。在读入前，文件偏移为11，文件总长度为13字节，所以只能读入成功2字节，读入后文件偏移为13，读入的字符串为"ad"。
@@ -143,7 +148,7 @@ static ssize_t __vfs_write(struct file *file, const char __user *p, size_t count
 
 和`read`与`pread`类似，`write`和`pwrite`将调用文件类型对应的`write`函数指针，如果不存在，则调用其用于`writev`, `pwritev`的`write_iter`函数指针。
 
-TODO: 对于常用的EXT4文件系统，找到『当文件句柄创建时使用`O_APPEND`标志位时，`write`系统调用会从文件末尾开始写入』这个特性的实现。
+TODO: 对于常用的EXT4文件系统，找到『当文件描述符创建时使用`O_APPEND`标志位时，`write`系统调用会从文件末尾开始写入』这个特性的实现。
 
 ## `writev`, `pwritev`与`pwritev2`
 
@@ -172,6 +177,6 @@ ssize_t pwritev2(int fd, const struct iovec *iov, int iovcnt, off_t offset, int 
 
 ### 简介
 
-和`readv`, `preadv`, `preadv2`类似，这三个系统调用是为了解决一次性从多个连续内存向一个文件句柄写入的问题，这三个系统调用被称为“聚合写”（gather output）。
+和`readv`, `preadv`, `preadv2`类似，这三个系统调用是为了解决一次性从多个连续内存向一个文件描述符写入的问题，这三个系统调用被称为“聚合写”（gather output）。
 
 这三个系统调用的特性与`readv`, `preadv`, `preadv2`十分类似，这里不再赘述。
