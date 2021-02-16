@@ -29,3 +29,4 @@
 |[`open_by_handle_at`](src/open-openat-name_to_handle_at-open_by_handle_at-open_tree.md)|304|`fcntl.h`|`fs/fhandle.c`|
 |[`preadv2`](src/read-pread64-readv-preadv-preadv2.md)|327|`sys/uio.h`|`fs/read_write.c`|
 |[`pwritev2`](src/write-pwrite64-writev-pwritev-pwritev2.md)|328|`sys/uio.h`|`fs/read_write.c`|
+|[`open_tree`](src/open-openat-name_to_handle_at-open_by_handle_at-open_tree.md)|428|无|`fs/namespace.c`|

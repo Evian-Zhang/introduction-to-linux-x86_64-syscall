@@ -138,8 +138,10 @@ POSIX标准要求在打开文件时，必须且只能使用上述标志位中的
     * 使用`O_SYNC`时，每一次`write`操作结束前，都会将文件内容和元信息写入相应的硬件。
     * 使用`O_DSYNC`时，每一次`write`操作结束前，都会将文件内容写入相应的硬件（不保证元信息）。
     * 这两种方法可以看作是在每一次`write`操作后使用`fsync`。
-    * `O_PATH`
-    * 仅以文件描述符层次打开相应的文件。详情见下方`open_tree`系统调用的描述。
+* `O_PATH`
+    * 仅以文件描述符层次打开相应的文件。
+	* 我们使用`open`和`openat`打开文件通常有两个目的：一是在文件系统中找到相应的文件，二是打开文件对其内容进行查看或修改。如果传入`O_PATH`标志位，则只执行第一个目的，不仅耗费更低，同时所需要的权限也更少。
+	* 通过`O_PATH`打开的文件描述符可以传递给`close`, `fchdir`, `fstat`等只在文件层面进行的操作，而不能传递给`read`, `write`等需要对文件内容进行查看或修改的操作。
 
 #### 其他注意点
 
@@ -152,7 +154,7 @@ POSIX标准要求在打开文件时，必须且只能使用上述标志位中的
 我们在使用`open`和`openat`时，可以有如下的思考顺序：
 
 1. 打开文件的路径是绝对路径还是相对路径
-    * 绝对路径使用`open`
+    * 绝对路径使用`open`和`openat`都可以
     * 对于相对路径而言，如果相对于当前目录，则可以使用`open`，但大部分情况而言还是`openat`适用性更广（相对于当前目录可以传递`AT_FDCWD`给`dirfd`参数）
 2. 打开文件是否需要读、写
 	* 只需要读，`flags`加入标志位`O_RDONLY`
@@ -349,8 +351,8 @@ tmp_handle.handle_bytes = 0;
 if (name_to_handle_at(filename, AT_FDCWD, &tmp_handle, NULL, 0) != -1 || errno != EOVERFLOW) {
 	exit(-1); // Unexpected behavior
 }
-char *buf = (char *)malloc(tmp_handle.handle_bytes);
-struct file_handle *handle = (struct file_handle *)buf;
+struct file_handle *handle = (struct file_handle *)malloc(tmp_handle.handle_bytes);
+handle->handle_bytes = tmp_handle.handle_bytes;
 int mount_id;
 name_to_handle_at(filename, AT_FDCWD, handle, &mount_id, 0);
 ```
@@ -400,3 +402,39 @@ struct dentry *exportfs_decode_fh(struct vfsmount *mnt, struct fid *fid, int fh_
 >    Given a filehandle fragment, this should find the implied object and create a dentry for it (possibly with d_obtain_alias).
 
 用于产生文件句柄的`encode_fh`函数指针，其默认实现是和inode直接相关的，所以确实可以看作是由操作系统来维护这个文件句柄的。
+
+## `open_tree`
+
+### 系统调用号
+
+428
+
+### 函数原型
+
+#### 内核接口
+
+```c
+asmlinkage long sys_open_tree(int dfd, const char __user *path, unsigned flags);
+```
+
+#### glibc封装
+
+无glibc封装，需要手动调用`syscall`。
+
+### 简介
+
+该系统调用的介绍在网络上较少，可以参考[lkml.org](https://lkml.org/lkml/2018/9/21/884)。
+
+我们可以将该系统调用看作包含`O_PATH`标志位，用`open`或`openat`打开。也就是说，只在文件系统中标记该位置，而不打开相应的内容，产生的文件描述符只能供少部分在文件层次进行的操作使用。
+
+当`flags`包含标志位`OPEN_TREE_CLONE`时，情况会稍微复杂一些。此时，`open_tree`会产生一个游离的(detached)挂载树，该挂载树对应的就是`dfd`和`path`决定的路径上的子树。如果还包含`AT_RECURSIVE`标志位，则整个子树都将被复制，否则就只复制目标挂载点内的部分。`OPEN_TREE_CLONE`标志位可以看作`mount --bind`，而`OPEN_TREE_CLONE | AT_RECURSIVE`标志位可以看作`mount --rbind`。
+
+### 实现
+
+位于`fs/namespace.c`文件中，其核心语句为
+
+```c
+file = dentry_open(&path, O_PATH, current_cred());
+```
+
+也就是通过`O_PATH`标志位打开相应的文件。
