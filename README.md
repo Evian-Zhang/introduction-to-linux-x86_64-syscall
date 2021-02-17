@@ -18,15 +18,20 @@
 |[`read`](src/read-pread64-readv-preadv-preadv2.md)|0|`unistd.h`|`fs/read_write.c`|
 |[`write`](src/write-pwrite64-writev-pwritev-pwritev2.md)|1|`unistd.h`|`fs/read_write.c`|
 |[`open`](src/open-openat-name_to_handle_at-open_by_handle_at-open_tree.md)|2|`fcntl.h`|`fs/open.c`|
+|[`stat`](src/stat-fstat-lstat-newfstatat-statx.md)|4|`sys/stat.h`|`fs/stat.c`|
+|[`fstat`](src/stat-fstat-lstat-newfstatat-statx.md)|5|`sys/stat.h`|`fs/stat.c`|
+|[`lstat`](src/stat-fstat-lstat-newfstatat-statx.md)|6|`sys/stat.h`|`fs/stat.c`|
 |[`pread64`](src/read-pread64-readv-preadv-preadv2.md)|17|`unistd.h`|`fs/read_write.c`|
 |[`pwrite64`](src/write-pwrite64-writev-pwritev-pwritev2.md)|18|`unistd.h`|`fs/read_write.c`|
 |[`readv`](src/read-pread64-readv-preadv-preadv2.md)|19|`sys/uio.h`|`fs/read_write.c`|
 |[`writev`](src/write-pwrite64-writev-pwritev-pwritev2.md)|20|`sys/uio.h`|`fs/read_write.c`|
 |[`openat`](src/open-openat-name_to_handle_at-open_by_handle_at-open_tree.md)|257|`fcntl.h`|`fs/open.c`|
+|[`newfstatat`](src/stat-fstat-lstat-newfstatat-statx.md)|262|`sys/stat.h`|`fs/stat.c`|
 |[`preadv`](src/read-pread64-readv-preadv-preadv2.md)|295|`sys/uio.h`|`fs/read_write.c`|
 |[`pwritev`](src/write-pwrite64-writev-pwritev-pwritev2.md)|296|`sys/uio.h`|`fs/read_write.c`|
 |[`name_to_handle_at`](src/open-openat-name_to_handle_at-open_by_handle_at-open_tree.md)|303|`fcntl.h`|`fs/fhandle.c`|
 |[`open_by_handle_at`](src/open-openat-name_to_handle_at-open_by_handle_at-open_tree.md)|304|`fcntl.h`|`fs/fhandle.c`|
 |[`preadv2`](src/read-pread64-readv-preadv-preadv2.md)|327|`sys/uio.h`|`fs/read_write.c`|
 |[`pwritev2`](src/write-pwrite64-writev-pwritev-pwritev2.md)|328|`sys/uio.h`|`fs/read_write.c`|
+|[`statx`](src/stat-fstat-lstat-newfstatat-statx.md)|332|`linux/stat.h`|`fs/stat.c`|
 |[`open_tree`](src/open-openat-name_to_handle_at-open_by_handle_at-open_tree.md)|428|无|`fs/namespace.c`|

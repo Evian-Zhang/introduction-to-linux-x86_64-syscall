@@ -114,7 +114,7 @@ POSIX标准要求在打开文件时，必须且只能使用上述标志位中的
     * 使用此标志时，`mode`参数将作为创建的文件的文件模式标志位。详情请见`creat`系统调用。TODO: 增加超链接
 * `O_EXCL`
     * 该标志位一般会与`O_CREAT`搭配使用。
-    * 如果`filename`路径存在相应的文件（包括软链接），则`open`会失败。
+    * 如果`filename`路径存在相应的文件（包括符号链接），则`open`会失败。
 * `O_DIRECTORY`
     * 如果`filename`路径不是一个目录，则失败。
     * 这个标志位是用来替代`opendir`函数的。TODO: 解释其受拒绝服务攻击的原理。
@@ -259,7 +259,7 @@ static struct file *path_openat(struct nameidata *nd, const struct open_flags *o
 }
 ```
 
-可见对于大部分情况而言，就是按照软链接的路径找到最终的文件，然后用`do_last`打开文件。
+可见对于大部分情况而言，就是按照符号链接的路径找到最终的文件，然后用`do_last`打开文件。
 
 ## `name_to_handle_at`与`open_by_handle_at`
 
@@ -325,7 +325,7 @@ filename ----name_to_handle_at----> file handle + mount id ----open_by_handle_at
 
 * 如果`pathname`是绝对路径，则返回对应的文件句柄和挂载ID，忽略`dirfd`
 * 如果`pathname`是相对路径，则返回该路径相对于`dirfd`（若值为`AT_FDCWD`则是当前目录）对应的文件的文件句柄和挂载ID
-* 如果`pathname`解析出来是软链接，且`flags`包含标志位`AT_SYMLINK_FOLLOW`，则继续找该软链接引用的真实文件，并返回真实文件的文件句柄和挂载ID
+* 如果`pathname`解析出来是符号链接，且`flags`包含标志位`AT_SYMLINK_FOLLOW`，则继续找该符号链接引用的真实文件，并返回真实文件的文件句柄和挂载ID
 * 如果`pathname`为空字符串，且`flags`包含控制位`AT_EMPTY_PATH`，则返回对应于文件描述符`dirfd`的文件句柄和挂载ID（此时`dirfd`可以为任意文件类型的描述符，不一定是目录的文件描述符）
 
 `open_by_handle_at`的`flags`则和`openat`的`flags`含义相同，为打开文件的方式。
