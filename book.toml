@@ -4,3 +4,6 @@ language = "zh-Hans"
 multilingual = false
 src = "src"
 title = "Linux x86_64系统调用简介"
+
+[output.html]
+resolve-md-symlink = true
