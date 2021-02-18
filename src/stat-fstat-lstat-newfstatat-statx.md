@@ -54,12 +54,21 @@ struct stat {
     off_t st_size;
     blksize_t st_blksize;
     blkcnt_t st_blocks;
+#ifdef __USE_XOPEN2K8
+    struct timespec st_atim;
+    struct timespec st_mtim;
+    struct timespec st_ctim;
+#define st_atime st_atim.tv_sec
+#define st_mtime st_mtim.tv_sec
+#define st_ctime st_ctim.tv_sec
+#else
     time_t st_atime;
     unsigned long st_atimensec;
     time_t st_mtime;
     unsigned long st_mtimensec;
     time_t st_ctime;
     unsigned long st_ctimensec;
+#endif
 };
 ```
 
@@ -122,13 +131,20 @@ struct stat {
 * `st_blksize`: 使用高效文件IO时，推荐使用的块大小
 * `st_blocks`: 分配给该文件的块数目（以512字节为一个单位）
 * 时间戳
-    * `st_atime`: 最后访问时间（UNIX时间戳形式，精确度为秒）
-    * `st_atimensec`: 最后访问时间（UNIX时间戳形式，精确度为纳秒）
-    * `st_mtime`: 最后修改时间（UNIX时间戳形式，精确度为秒）
-    * `st_mtimensec`: 最后修改时间（UNIX时间戳形式，精确度为纳秒）
-    * `st_ctime`: 文件状态最后修改时间（UNIX时间戳形式，精确度为秒）
-    * `st_ctimensec`: 文件状态最后修改时间（UNIX时间戳形式，精确度为纳秒）
-    * `mtime`与`ctime`的区别在于，前者是文件内容的修改，而后者则是文件对应inode的修改。如只修改`st_atime`字段，而不修改文件内容，则`mtime`不变，`ctime`发生改变。
+    * 首先，各个名称的意义：
+        * `atime`: 最后访问时间
+        * `mtime`: 最后修改时间
+        * `ctime`: 文件状态最后修改时间
+        * `mtime`与`ctime`的区别在于，前者是文件内容的修改，而后者则是文件对应inode的修改。如只修改`st_atime`字段，而不修改文件内容，则`mtime`不变，`ctime`发生改变。
+    * 如果：
+        * `_POSIX_C_SOURCE`宏定义为不小于200809L的值
+        * `_XOPEN_SOURCE`定义为不小于700的值
+        * `_BSD_SOURCE`被定义
+        * `_SVID_SOURCE`被定义
+
+        上述条件只需要满足任意一个，我们就可以通过`st_atime`或`st_atim.tv_sec`访问UNIX时间戳（以秒为单位），`st_atime.tv_nsec`访问其纳秒部分（不是总时长，而是除去秒部分，剩下的纳秒部分的大小）。其余几个时间也可以用类似的方式访问秒和纳秒部分。
+    * 如果上面的条件都不满足，我们则可以通过`st_atime`访问UNIX时间戳（以秒为单位），`st_atimensec`访问其纳秒部分。
+    * 也就是说，无论何种情况，我们都可以用`st_atime`访问以秒为单位的UNIX时间戳。
 
 `stat`是根据文件路径获得相应的文件状态信息，但如果文件是一个符号链接，则会获得其指向的实际文件的信息。
 
