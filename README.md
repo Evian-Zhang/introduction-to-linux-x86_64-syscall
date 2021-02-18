@@ -18,6 +18,7 @@
 |[`read`](src/read-pread64-readv-preadv-preadv2.md)|0|`unistd.h`|`fs/read_write.c`|
 |[`write`](src/write-pwrite64-writev-pwritev-pwritev2.md)|1|`unistd.h`|`fs/read_write.c`|
 |[`open`](src/open-openat-name_to_handle_at-open_by_handle_at-open_tree.md)|2|`fcntl.h`|`fs/open.c`|
+|[`close`](src/close.md)|3|`unistd.h`|`fs/open.c`|
 |[`stat`](src/stat-fstat-lstat-newfstatat-statx.md)|4|`sys/stat.h`|`fs/stat.c`|
 |[`fstat`](src/stat-fstat-lstat-newfstatat-statx.md)|5|`sys/stat.h`|`fs/stat.c`|
 |[`lstat`](src/stat-fstat-lstat-newfstatat-statx.md)|6|`sys/stat.h`|`fs/stat.c`|
