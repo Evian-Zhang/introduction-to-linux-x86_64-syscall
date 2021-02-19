@@ -8,10 +8,5 @@
 - [`close`](filesystem/close.md)
 - [`read`, `pread64`, `readv`, `preadv`, `preadv2`](filesystem/read-pread64-readv-preadv-preadv2.md)
 - [`write`, `pwrite64`, `writev`, `pwritev`, `pwritev2`](filesystem/write-pwrite64-writev-pwritev-pwritev2.md)
+- [`poll`, `select`, `pselect6`, `ppoll`](filesystem/poll-select-pselect6-ppoll.md)
 - [`stat`, `fstat`, `lstat`, `newfstatat`, `statx`](filesystem/stat-fstat-lstat-newfstatat-statx.md)
-
----
-
-# Network
-
-- [`poll`, `ppoll`](network/poll-ppoll.md)
