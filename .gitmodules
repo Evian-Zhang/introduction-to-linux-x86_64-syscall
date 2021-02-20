@@ -1,6 +1,8 @@
 [submodule "linux"]
 	path = linux
 	url = git@github.com:torvalds/linux.git
+	branch = v5.4
 [submodule "glibc"]
 	path = glibc
 	url = git://sourceware.org/git/glibc.git
+	branch = glibc-2.31

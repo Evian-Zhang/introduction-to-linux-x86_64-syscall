@@ -30,7 +30,6 @@ git config submodule.glibc.url https://mirrors.tuna.tsinghua.edu.cn/git/glibc.gi
 git pull --recurse-submodule
 ```
 
-
 ## 系统调用对照表
 
 每个系统调用名都超链接到了其在本仓库中对应的文章。
