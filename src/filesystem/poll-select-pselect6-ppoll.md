@@ -146,7 +146,7 @@ struct timeval {
 * `readfds`, `writefds`, `exceptfds`中会只保留已经处于准备好状态的文件描述符。我们可以通过`FD_ISSET`去查看哪些文件描述符准备好。（正因如此，如果我们在一个循环中使用`select`，那在每次使用之前，需要复制一遍各集合，或用`FD_CLR`清空后重新添加）
 * `select`可能会更新`timeout`参数。
 
-综上，如果我们要按第三个方案来实现我们的功能，其写法为
+综上，如果我们要用`select`，按第三个方案来实现我们的功能，其写法为
 
 ```c
 void process_fds(int *fds, int nfd) {
@@ -176,7 +176,191 @@ void process_fds(int *fds, int nfd) {
 }
 ```
 
-此外，值得注意的是，glibc的封装要求我们每个集合包含的文件描述符不能超过`FD_SETSIZE`，也就是1024个。
+此外，值得注意的是，glibc的封装要求我们的文件描述符的值不能超过`FD_SETSIZE`，也就是1024。
+
+#### `poll`
+
+`poll`的函数签名为
+
+```c
+int poll(struct pollfd *fds, nfds_t nfds, int timeout);
+```
+
+与`select`不同的是，它并不是把文件描述符放在`fd_set`结构体中，而是放在一个`struct pollfd`类型组成的数组中，`nfds`为该数组的长度。
+
+`struct pollfd`的定义为
+
+```c
+struct pollfd {
+    int   fd;         /* file descriptor */
+    short events;     /* requested events */
+    short revents;    /* returned events */
+};
+```
+
+`fd`是文件描述符，`events`是用户感兴趣的事件（类似于`select`中的`readfds`, `writefds`和`exceptfds`），由用户填写；`revents`是实际发生的事件，由内核填写。
+
+`events`与`revents`是位掩码，其可以包含的标志位有
+
+* `POLLIN`：存在数据可以读入（相当于`select`中的`readfds`）
+* `POLLPRI`：存在其他条件满足（相当于`select`中的`exceptfds`）
+* `POLLOUT`：存在数据可以写入（相当于`select`中的`writefds`）
+* `POLLRDHUP`
+
+    流套接字对端关闭连接。
+
+    需定义`_GNU_SOURCE`宏。
+
+* `POLLERR`
+
+    出错。
+
+    只可由`revents`包含，不可由`events`包含
+
+* `POLLHUP`
+
+    挂起。
+
+    只可由`revents`包含，不可由`events`包含
+
+* `POLLNVAL`
+
+    由于`fd`未打开，请求无效。
+
+    只可由`revents`包含，不可由`events`包含
+
+当`events`为0时，`revents`只可返回`POLLERR`, `POLLHUP`和`POLLNVAL`（将`events`置为0类似于`select`中的`FD_CLR`）。若其不为0，则可以返回`events`中包含的事件，以及`POLLERR`, `POLLHUP`和`POLLNVAL`。如果返回的`revents`为0，则表示什么都没发生，可能超时了，或者别的文件描述符中发生了用户感兴趣的事。
+
+`timeout`参数表示其最多等待时间（以毫秒为单位）。如果其为负，则表示`poll`无限等待；如果其为0，则表示`poll`立即返回。
+
+如果在超时范围内，任何一个用户感兴趣的事件发生了，`poll`将会返回，返回值为产生用户感兴趣事件的文件描述符个数；如果超时了，没有任何一个用户感兴趣的事件发生，则`poll`将会返回0。
+
+综上，如果我们要用`poll`，按第三个方案来实现我们的功能，其写法为
+
+```c
+void process_fds(int *fds, int nfd) {
+    struct pollfd *pollfds = (struct pollfd *)malloc(nfd * sizeof(struct pollfd));
+    for (int i = 0; i < nfd; i++) {
+        pollfds[i].fd = fds[i];
+        pollfds[i].events = POLLIN;
+    }
+    while (1) {
+        if (poll(pollfds, nfd, -1) <= 0) {
+            break;
+        }
+        for (int i = 0; i < nfd; i++) {
+            if (pollfds[i].revents & POLLIN) {
+                pollfds[i].events = 0;
+                char buf[64];
+                read(fds[i], buf, 64);
+                process_read_content(buf);
+            }
+        }
+    }
+}
+```
+
+与`select`不同的是，其可以包含的文件描述符个数无上限。
+
+根据上述的讨论，`poll`与`select`的区别在于
+
+* `poll`文件描述符个数无上限，`select`文件描述符其值上限为`FD_SETSIZE`
+* `poll`感兴趣的事件种类更多
+* `poll`不需要在每次调用前都复制一遍`fd_set`，也就是`poll`不会改变传入的`fds`。
+* `poll`超时参数精度为毫秒，`select`超时参数精度为微秒，`select`更精确。
+
+### 实现
+
+#### `select`
+
+首先我们来看看`fd_set`与和其相关的函数是怎么实现的。在Linux内核的`include/linux/types.h`中可以看到
+
+```c
+typedef __kernel_fd_set		fd_set;
+```
+
+而在`include/uapi/linux/posix_types.h`中可以看到
+
+```c
+#define __FD_SETSIZE	1024
+
+typedef struct {
+	unsigned long fds_bits[__FD_SETSIZE / (8 * sizeof(long))];
+} __kernel_fd_set;
+```
+
+所以，这其实就是一个长度为1024字节的位数组。同时我们也明白了，为什么`select`要求文件描述符的值不能超过`FD_SETSIZE`。
+
+同时，我们也可以在glibc的源码`misc/sys/select.h`中看到和其相关的函数的定义
+
+```c
+#define	FD_SET(fd, fdsetp)	__FD_SET (fd, fdsetp)
+#define	FD_CLR(fd, fdsetp)	__FD_CLR (fd, fdsetp)
+#define	FD_ISSET(fd, fdsetp)	__FD_ISSET (fd, fdsetp)
+#define	FD_ZERO(fdsetp)		__FD_ZERO (fdsetp)
+```
+
+其实现则位于`bits/select.h`：
+
+```c
+#define __FD_ZERO(s) \
+  do {									      \
+    unsigned int __i;							      \
+    fd_set *__arr = (s);						      \
+    for (__i = 0; __i < sizeof (fd_set) / sizeof (__fd_mask); ++__i)	      \
+      __FDS_BITS (__arr)[__i] = 0;					      \
+  } while (0)
+#define __FD_SET(d, s) \
+  ((void) (__FDS_BITS (s)[__FD_ELT(d)] |= __FD_MASK(d)))
+#define __FD_CLR(d, s) \
+  ((void) (__FDS_BITS (s)[__FD_ELT(d)] &= ~__FD_MASK(d)))
+#define __FD_ISSET(d, s) \
+  ((__FDS_BITS (s)[__FD_ELT (d)] & __FD_MASK (d)) != 0)
+```
+
+简单来说，就是：
+
+* `FD_ZERO`将整个位数组清0（不用`memset`的原因是，这可能需要在之前声明`memset`的原型，并且这个数组其实并不大）
+* `FD_SET`将该文件描述符对应的比特位置1
+* `FD_CLR`将该文件描述符对应的比特位置0
+* `FD_ISSET`判断该文件描述符对应的比特位是否为1
+
+接着，我们来看看`select`内部的实现。其实现均位于Linux内核源码的`fs/select.c`文件中。
+
+首先，在`core_sys_select`函数里，使用了一个`fd_set_bits`的结构体，其定义为：
+
+```c
+typedef struct {
+	unsigned long *in, *out, *ex;
+	unsigned long *res_in, *res_out, *res_ex;
+} fd_set_bits;
+```
+
+一共六个位数组，前三个是存储我们传入的参数的，后三个之后会提到。
+
+然后，调用了`do_select`函数，其内容非常长，核心是
+
+```c
+wait_key_set(wait, in, out, bit, busy_flag);
+mask = vfs_poll(f.file, wait);
+
+fdput(f);
+if ((mask & POLLIN_SET) && (in & bit)) {
+    res_in |= bit;
+    retval++;
+    wait->_qproc = NULL;
+}
+if ((mask & POLLOUT_SET) && (out & bit)) {
+    res_out |= bit;
+    retval++;
+    wait->_qproc = NULL;
+}
+if ((mask & POLLEX_SET) && (ex & bit)) {
+    res_ex |= bit;
+    retval++;
+    wait->_qproc = NULL;
+}
+```
 
 ## `pselect6`与`ppoll`
 
