@@ -6,7 +6,29 @@
 
 ## 环境
 
-所有实现细节均基于[v5.4版本的Linux内核](https://github.com/torvalds/linux/tree/v5.4)，系统调用列表位于`arch/x86/entry/syscalls/syscall_64.tbl`。功能、用法基于其相应的manual page，可在[man7.org](https://www.man7.org/linux/man-pages/)中查看。涉及到验证代码的，则会在Ubuntu 20.04中进行验证，glibc版本为2.31。
+所有实现细节均基于[v5.4版本的Linux内核](https://github.com/torvalds/linux/tree/v5.4)，glibc-2.31版本的glibc。所记录的系统调用列表位于Linux内核源码的`arch/x86/entry/syscalls/syscall_64.tbl`。功能、用法基于其相应的manual page，可在[man7.org](https://www.man7.org/linux/man-pages/)中查看。涉及到验证代码的，则会在Ubuntu 20.04中进行验证。
+
+如果仅想阅读本仓库的文章以及相应的测试代码，可以使用
+
+```shell
+git clone git@github.com:Evian-Zhang/introduction-to-linux-x86_64-syscall.git
+```
+
+如果想同时把相应版本的Linux内核源码与glibc源码一并下载，可以使用
+
+```shell
+git clone --recurse-submodules git@github.com:Evian-Zhang/introduction-to-linux-x86_64-syscall.git
+```
+
+对于在国内的网友，可以考虑使用清华大学开源软件镜像站：
+
+```shell
+git clone git@github.com:Evian-Zhang/introduction-to-linux-x86_64-syscall.git
+cd introduction-to-linux-x86_64-syscall
+git config submodule.linux.url https://mirrors.tuna.tsinghua.edu.cn/git/linux.git
+git config submodule.glibc.url https://mirrors.tuna.tsinghua.edu.cn/git/glibc.git
+git pull --recurse-submodule
+```
 
 
 ## 系统调用对照表
