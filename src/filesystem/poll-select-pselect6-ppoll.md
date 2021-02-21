@@ -638,3 +638,78 @@ int pselect(int nfds, fd_set *readfds, fd_set *writefds, fd_set *exceptfds, cons
 #include <poll.h>
 int ppoll(struct pollfd *fds, nfds_t nfds, const struct timespec *tmo_p, const sigset_t *sigmask);
 ```
+
+### 简介
+
+`pselect`与`select`的区别主要在于：
+
+* 超时精度
+    * `select`使用的是`struct timeval`结构体，精确到微秒
+    * `pselect`使用的是`struct timespec`结构体，精确到纳秒
+* 超时参数
+    * `select`可能会更新其超时参数`timeout`
+    * `pselect6`系统调用可能会更新其超时参数，glibc的封装`pselect`不会更新其超时参数
+* 信号掩码
+    * `pselect`可以设置信号掩码，若其为`NULL`，则行为与`select`相同
+
+`ppoll`与`poll`的区别主要在于：
+
+* 超时精度
+    * `poll`使用的超时精度为毫秒
+    * `ppoll`使用的是`struct timespec`结构体，精确到纳秒
+* 信号掩码
+    * `ppoll`可以设置信号掩码，若其为`NULL`，则行为与`poll`相同
+
+`pselect`与`ppoll`可以看作执行`select`或`poll`前后设置信号掩码。之所以需要这两个单独的系统调用，是因为如果我们的需求是，要么接收到特定的信号，要么某个文件描述符准备好，然后执行后续的操作。如果我们分为两步操作，但是接受信号实际上是在判断是否接收到信号之后，也就是判断结果为没接收到信号，而且在调用`select`之前，那么就可能陷入无限等待。`pselect`与`ppoll`进行信号判断的时候则是使用原子操作，所以不会产生这样的竞争条件。
+
+### 实现
+
+`pselect6`与`ppoll`在Linux内核中的实现与`select`和`poll`类似。有一点需要说明的是，`pselect6`接受的最后一个参数是`void *`类型的，这是因为它实际上需要的类型为
+
+```c
+struct {
+    const kernel_sigset_t *ss;   /* Pointer to signal set */
+    size_t ss_len;               /* Size (in bytes) of object
+                                    pointed to by 'ss' */
+};
+```
+
+本来其实可以把这两个字段变成两个函数的参数的，但由于Linux x86_64的ABI要求系统调用至多只能接受6个参数，所以最后一个参数只能是这样的结构体了。
+
+值得注意的是，在glibc的封装中，以`pselect`为例：
+
+我们在glibc源码的`sysdeps/unix/sysv/linux/pselect.c`中可以看到：
+
+```c
+int
+__pselect (int nfds, fd_set *readfds, fd_set *writefds, fd_set *exceptfds,
+	   const struct timespec *timeout, const sigset_t *sigmask)
+{
+  /* The Linux kernel can in some situations update the timeout value.
+     We do not want that so use a local variable.  */
+  struct timespec tval;
+  if (timeout != NULL)
+    {
+      tval = *timeout;
+      timeout = &tval;
+    }
+
+  /* Note: the system call expects 7 values but on most architectures
+     we can only pass in 6 directly.  If there is an architecture with
+     support for more parameters a new version of this file needs to
+     be created.  */
+  struct
+  {
+    __syscall_ulong_t ss;
+    __syscall_ulong_t ss_len;
+  } data;
+
+  data.ss = (__syscall_ulong_t) (uintptr_t) sigmask;
+  data.ss_len = _NSIG / 8;
+
+  return SYSCALL_CANCEL (pselect6, nfds, readfds, writefds, exceptfds,
+                         timeout, &data);
+}
+```
+
+通过设置一个局部变量`tval`，使得传入的参数`timeout`不会被内核修改。`ppoll`也进行了类似的操作。
