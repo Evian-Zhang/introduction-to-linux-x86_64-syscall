@@ -147,7 +147,27 @@ POSIX标准要求在打开文件时，必须且只能使用上述标志位中的
 
 此外，还有一些需要注意的。
 
-在新的Linux内核（版本不低于2.26）中，glibc的封装`open`底层调用的是`openat`系统调用而不是`open`系统调用（`dirfd`为`AT_FDCWD`）。
+在新的Linux内核（版本不低于2.26）中，glibc的封装`open`底层调用的是`openat`系统调用而不是`open`系统调用（`dirfd`为`AT_FDCWD`）。我们可以在glibc源码的`sysdeps/unix/sysv/linux/open.c`中看到：
+
+```c
+int
+__libc_open (const char *file, int oflag, ...)
+{
+  int mode = 0;
+
+  if (__OPEN_NEEDS_MODE (oflag))
+    {
+      va_list arg;
+      va_start (arg, oflag);
+      mode = va_arg (arg, int);
+      va_end (arg);
+    }
+
+  return SYSCALL_CANCEL (openat, AT_FDCWD, file, oflag, mode);
+}
+```
+
+`open`的glibc封装实际上就是系统调用`openat(AT_FDCWD, file, oflag, mode)`。
 
 ### 用法
 
