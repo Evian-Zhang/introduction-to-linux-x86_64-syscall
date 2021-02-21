@@ -160,7 +160,8 @@ void process_fds(int *fds, int nfd) {
         }
     }
     while (1) {
-        fd_set tmp_rset = rset;
+        fd_set tmp_rset;
+        memcpy(&tmp_rset, &rset, sizeof(fd_set));
         if (select(maxfd + 1, &tmp_rset, NULL, NULL, NULL) <= 0) {
             break;
         }
@@ -336,31 +337,274 @@ typedef struct {
 } fd_set_bits;
 ```
 
-一共六个位数组，前三个是存储我们传入的参数的，后三个之后会提到。
+一共六个位数组，前三个是存储我们传入的参数的，后三个存储结果，在最终再复制进前三个中。
 
-然后，调用了`do_select`函数，其内容非常长，核心是
+`select`的实现，最主要的就是`do_select`函数，其内容非常长，但也十分重要：
 
 ```c
-wait_key_set(wait, in, out, bit, busy_flag);
-mask = vfs_poll(f.file, wait);
+static int do_select(int n, fd_set_bits *fds, struct timespec64 *end_time)
+{
+	ktime_t expire, *to = NULL;
+	struct poll_wqueues table;
+	poll_table *wait;
+	int retval, i, timed_out = 0;
+	u64 slack = 0;
+	__poll_t busy_flag = net_busy_loop_on() ? POLL_BUSY_LOOP : 0;
+	unsigned long busy_start = 0;
 
-fdput(f);
-if ((mask & POLLIN_SET) && (in & bit)) {
-    res_in |= bit;
-    retval++;
-    wait->_qproc = NULL;
-}
-if ((mask & POLLOUT_SET) && (out & bit)) {
-    res_out |= bit;
-    retval++;
-    wait->_qproc = NULL;
-}
-if ((mask & POLLEX_SET) && (ex & bit)) {
-    res_ex |= bit;
-    retval++;
-    wait->_qproc = NULL;
+	rcu_read_lock();
+	retval = max_select_fd(n, fds);
+	rcu_read_unlock();
+
+	if (retval < 0)
+		return retval;
+	n = retval;
+
+	poll_initwait(&table);
+	wait = &table.pt;
+	if (end_time && !end_time->tv_sec && !end_time->tv_nsec) {
+		wait->_qproc = NULL;
+		timed_out = 1;
+	}
+
+	if (end_time && !timed_out)
+		slack = select_estimate_accuracy(end_time);
+
+	retval = 0;
+	for (;;) {
+		unsigned long *rinp, *routp, *rexp, *inp, *outp, *exp;
+		bool can_busy_loop = false;
+
+		inp = fds->in; outp = fds->out; exp = fds->ex;
+		rinp = fds->res_in; routp = fds->res_out; rexp = fds->res_ex;
+
+		for (i = 0; i < n; ++rinp, ++routp, ++rexp) {
+			unsigned long in, out, ex, all_bits, bit = 1, j;
+			unsigned long res_in = 0, res_out = 0, res_ex = 0;
+			__poll_t mask;
+
+			in = *inp++; out = *outp++; ex = *exp++;
+			all_bits = in | out | ex;
+			if (all_bits == 0) {
+				i += BITS_PER_LONG;
+				continue;
+			}
+
+			for (j = 0; j < BITS_PER_LONG; ++j, ++i, bit <<= 1) {
+				struct fd f;
+				if (i >= n)
+					break;
+				if (!(bit & all_bits))
+					continue;
+				f = fdget(i);
+				if (f.file) {
+					wait_key_set(wait, in, out, bit,
+						     busy_flag);
+					mask = vfs_poll(f.file, wait);
+
+					fdput(f);
+					if ((mask & POLLIN_SET) && (in & bit)) {
+						res_in |= bit;
+						retval++;
+						wait->_qproc = NULL;
+					}
+					if ((mask & POLLOUT_SET) && (out & bit)) {
+						res_out |= bit;
+						retval++;
+						wait->_qproc = NULL;
+					}
+					if ((mask & POLLEX_SET) && (ex & bit)) {
+						res_ex |= bit;
+						retval++;
+						wait->_qproc = NULL;
+					}
+					/* got something, stop busy polling */
+					if (retval) {
+						can_busy_loop = false;
+						busy_flag = 0;
+
+					/*
+					 * only remember a returned
+					 * POLL_BUSY_LOOP if we asked for it
+					 */
+					} else if (busy_flag & mask)
+						can_busy_loop = true;
+
+				}
+			}
+			if (res_in)
+				*rinp = res_in;
+			if (res_out)
+				*routp = res_out;
+			if (res_ex)
+				*rexp = res_ex;
+			cond_resched();
+		}
+		wait->_qproc = NULL;
+		if (retval || timed_out || signal_pending(current))
+			break;
+		if (table.error) {
+			retval = table.error;
+			break;
+		}
+
+		/* only if found POLL_BUSY_LOOP sockets && not out of time */
+		if (can_busy_loop && !need_resched()) {
+			if (!busy_start) {
+				busy_start = busy_loop_current_time();
+				continue;
+			}
+			if (!busy_loop_timeout(busy_start))
+				continue;
+		}
+		busy_flag = 0;
+
+		/*
+		 * If this is the first loop and we have a timeout
+		 * given, then we convert to ktime_t and set the to
+		 * pointer to the expiry value.
+		 */
+		if (end_time && !to) {
+			expire = timespec64_to_ktime(*end_time);
+			to = &expire;
+		}
+
+		if (!poll_schedule_timeout(&table, TASK_INTERRUPTIBLE,
+					   to, slack))
+			timed_out = 1;
+	}
+
+	poll_freewait(&table);
+
+	return retval;
 }
 ```
+
+`fd_set_bits`类型的`fds`，其表示输入的字段复制于系统调用的输入，其表示输出的字段在调用前被清空。
+
+其主体部分为两层嵌套的循环。在最外层循环中，每一轮循环处理`BITS_PER_LONG`，也就是一般来说64个文件描述符。这是因为我们的数据是用`long`的位数组来存储的，所以这样分批次效率更高。在内循环中，我们遍历这个`long`整型的每个字节，其每个字节对应一个文件描述符。
+
+也就是说，我们从0开始，一直到我们传入系统调用的参数`n`，也就是最大的文件描述符的值，遍历每个文件描述符，在在53行看到，通过`bit & all_bits`，判断当前的文件描述符是否在我们之前传入的`in`, `out`或`ex`集合中。对于存在集合中的，最终调用了`vfs_poll`来查询单个文件的状态，其实现位于`fs/poll.h`中：
+
+```c
+static inline __poll_t vfs_poll(struct file *file, struct poll_table_struct *pt)
+{
+	if (unlikely(!file->f_op->poll))
+		return DEFAULT_POLLMASK;
+	return file->f_op->poll(file, pt);
+}
+```
+
+依旧是函数指针模拟多态。
+
+最终，再把`res_in`, `res_out`, `res_ex`复制回原本的`in`, `out`, `ex`即可。
+
+总的来说，`select`的步骤是，对于输入的参数`nfds`，把值从0到`nfds - 1`的所有相关的文件描述符都查询一遍，对于每个文件描述符，调用`vfs_poll`查询状态。
+
+#### `poll`
+
+`poll`的实现位于`fs/select.c`，其核心`do_poll`依然很长，但也十分重要：
+
+```c
+static int do_poll(struct poll_list *list, struct poll_wqueues *wait, struct timespec64 *end_time)
+{
+	poll_table* pt = &wait->pt;
+	ktime_t expire, *to = NULL;
+	int timed_out = 0, count = 0;
+	u64 slack = 0;
+	__poll_t busy_flag = net_busy_loop_on() ? POLL_BUSY_LOOP : 0;
+	unsigned long busy_start = 0;
+
+	/* Optimise the no-wait case */
+	if (end_time && !end_time->tv_sec && !end_time->tv_nsec) {
+		pt->_qproc = NULL;
+		timed_out = 1;
+	}
+
+	if (end_time && !timed_out)
+		slack = select_estimate_accuracy(end_time);
+
+	for (;;) {
+		struct poll_list *walk;
+		bool can_busy_loop = false;
+
+		for (walk = list; walk != NULL; walk = walk->next) {
+			struct pollfd * pfd, * pfd_end;
+
+			pfd = walk->entries;
+			pfd_end = pfd + walk->len;
+			for (; pfd != pfd_end; pfd++) {
+				/*
+				 * Fish for events. If we found one, record it
+				 * and kill poll_table->_qproc, so we don't
+				 * needlessly register any other waiters after
+				 * this. They'll get immediately deregistered
+				 * when we break out and return.
+				 */
+				if (do_pollfd(pfd, pt, &can_busy_loop,
+					      busy_flag)) {
+					count++;
+					pt->_qproc = NULL;
+					/* found something, stop busy polling */
+					busy_flag = 0;
+					can_busy_loop = false;
+				}
+			}
+		}
+		/*
+		 * All waiters have already been registered, so don't provide
+		 * a poll_table->_qproc to them on the next loop iteration.
+		 */
+		pt->_qproc = NULL;
+		if (!count) {
+			count = wait->error;
+			if (signal_pending(current))
+				count = -ERESTARTNOHAND;
+		}
+		if (count || timed_out)
+			break;
+
+		/* only if found POLL_BUSY_LOOP sockets && not out of time */
+		if (can_busy_loop && !need_resched()) {
+			if (!busy_start) {
+				busy_start = busy_loop_current_time();
+				continue;
+			}
+			if (!busy_loop_timeout(busy_start))
+				continue;
+		}
+		busy_flag = 0;
+
+		/*
+		 * If this is the first loop and we have a timeout
+		 * given, then we convert to ktime_t and set the to
+		 * pointer to the expiry value.
+		 */
+		if (end_time && !to) {
+			expire = timespec64_to_ktime(*end_time);
+			to = &expire;
+		}
+
+		if (!poll_schedule_timeout(wait, TASK_INTERRUPTIBLE, to, slack))
+			timed_out = 1;
+	}
+	return count;
+}
+```
+
+传入的参数`list`的类型是`struct poll_list`的指针：
+
+```c
+struct poll_list {
+	struct poll_list *next;
+	int len;
+	struct pollfd entries[0];
+};
+```
+
+也就是说，这里是一个链表。其`entries`字段是一个变长数组。我们传入`do_poll`的`list`参数是将传入系统调用的`fds`，也就是由`nfds`个`struct pollfd`类型的实例组成的数组，在之前的`do_sys_poll`函数中，被分成长度为`POLLFD_PER_PAGE`的若干个部分，然后再将每个部分用链表串联起来。这样做的原因应该就是保证每次处理的一批不会超过页大小，尽量减少换页。
+
+在`do_poll`函数中我们可以看到，对每个链表项，遍历了其`entries`数组，也就相当于对我们传入的`fds`进行遍历。对每一个文件描述符，使用`do_pollfd(pfd, pt, &can_busy_loop, busy_flag)`来进行真正的`poll`操作，而`do_pollfd`，实际上就是调用的`vfs_poll`。
 
 ## `pselect6`与`ppoll`
 
