@@ -61,3 +61,9 @@ git pull --recurse-submodule
 |[`pwritev2`](src/filesystem/write-pwrite64-writev-pwritev-pwritev2.md)|328|`sys/uio.h`|`fs/read_write.c`|
 |[`statx`](src/filesystem/stat-fstat-lstat-newfstatat-statx.md)|332|`linux/stat.h`|`fs/stat.c`|
 |[`open_tree`](src/filesystem/open-openat-name_to_handle_at-open_by_handle_at-open_tree.md)|428|无|`fs/namespace.c`|
+
+#### License
+
+<sup>
+本仓库遵循CC0-1.0版权协议。
+</sup>
