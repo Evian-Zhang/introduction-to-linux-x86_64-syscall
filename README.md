@@ -70,7 +70,7 @@ git pull --recurse-submodule
 #### License
 
 <sup>
-本仓库遵循[CC-BY-4.0版权协议](https://creativecommons.org/licenses/by/4.0/)。
+本仓库遵循<a href="https://creativecommons.org/licenses/by/4.0/">CC-BY-4.0版权协议</a>。
 </sup>
 
 <br>
