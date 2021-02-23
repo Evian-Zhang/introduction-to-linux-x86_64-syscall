@@ -27,7 +27,7 @@ git clone git@github.com:Evian-Zhang/introduction-to-linux-x86_64-syscall.git
 cd introduction-to-linux-x86_64-syscall
 git config submodule.linux.url https://mirrors.tuna.tsinghua.edu.cn/git/linux.git
 git config submodule.glibc.url https://mirrors.tuna.tsinghua.edu.cn/git/glibc.git
-git pull --recurse-submodule
+git pull --recurse-submodules
 ```
 
 ## 系统调用对照表
