@@ -56,7 +56,7 @@ int openat(int dirfd, const char *pathname, int flags, mode_t mode);
 
     以只写方式打开。创建的文件描述符不可读。
 
-* `O_RDWD`
+* `O_RDWR`
 
     以读写方式打开。创建的文件描述符既可读也可写。
 
@@ -119,7 +119,7 @@ POSIX标准要求在打开文件时，必须且只能使用上述标志位中的
     * 如果`filename`路径不是一个目录，则失败。
     * 这个标志位是用来替代`opendir`函数的。TODO: 解释其受拒绝服务攻击的原理。
 * `O_TRUNC`
-    * 如果`filename`路径存在相应的文件，且以写的方式打开（即`O_WDONLY`或`O_RDWD`），那么将文件内容清空。
+    * 如果`filename`路径存在相应的文件，且以写的方式打开（即`O_WDONLY`或`O_RDWR`），那么将文件内容清空。
 
 ##### 文件状态标志（file status flag）
 
@@ -189,7 +189,7 @@ __libc_open (const char *file, int oflag, ...)
 2. 打开文件是否需要读、写
 	* 只需要读，`flags`加入标志位`O_RDONLY`
 	* 只需要写，`flags`加入标志位`O_WDONLY`
-	* 既需要读，又需要写，`flags`加入标志位`O_RDWD`
+	* 既需要读，又需要写，`flags`加入标志位`O_RDWR`
 3. 对于可能会产生子进程并使用`exec`函数族的程序，`flags`加入标志位`O_CLOEXEC`
 4. 如果需要对文件进行写入：
 	* 如果需要在写之前清空文件内容，`flags`加入标志位`O_TRUNC`
@@ -200,7 +200,7 @@ __libc_open (const char *file, int oflag, ...)
 
 ```c
 int fd1 = open(filename, O_RDONLY);
-int fd2 = open(filename, O_RDWD | O_APPEND);
+int fd2 = open(filename, O_RDWR | O_APPEND);
 int fd3 = open(filename, O_WDONLY | O_CLOEXEC | O_TRUNC);
 ```
 

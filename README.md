@@ -44,6 +44,7 @@ git pull --recurse-submodule
 |[`fstat`](src/filesystem/stat-fstat-lstat-newfstatat-statx.md)|5|`sys/stat.h`|`fs/stat.c`|
 |[`lstat`](src/filesystem/stat-fstat-lstat-newfstatat-statx.md)|6|`sys/stat.h`|`fs/stat.c`|
 |[`poll`](src/filesystem/poll-select-pselect6-ppoll.md)|7|`poll.h`|`fs/select.c`|
+|[`lseek`](src/filesystem/lseek.md)|8|`unistd.h`|`fs/read_write.c`|
 |[`pread64`](src/filesystem/read-pread64-readv-preadv-preadv2.md)|17|`unistd.h`|`fs/read_write.c`|
 |[`pwrite64`](src/filesystem/write-pwrite64-writev-pwritev-pwritev2.md)|18|`unistd.h`|`fs/read_write.c`|
 |[`readv`](src/filesystem/read-pread64-readv-preadv-preadv2.md)|19|`sys/uio.h`|`fs/read_write.c`|
