@@ -15,4 +15,4 @@
 
 # 内存管理
 
-- [`mmap`, `munmap`, `mremap`, `remap_file_pages`](memory_management/mmap-munmap-mremap-remap_file_pages.md)
+- [`mmap`, `munmap`, `mremap`, `msync`, `remap_file_pages`](memory_management/mmap-munmap-mremap-msync-remap_file_pages.md)
