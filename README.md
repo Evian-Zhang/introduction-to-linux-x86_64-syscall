@@ -46,12 +46,16 @@ git pull --recurse-submodules
 |[`poll`](src/filesystem/poll-select-pselect6-ppoll.md)|7|`poll.h`|`fs/select.c`|
 |[`lseek`](src/filesystem/lseek.md)|8|`unistd.h`|`fs/read_write.c`|
 |[`mmap`](src/memory_management/mmap-munmap-mremap-msync-remap_file_pages.md)|9|`sys/mman.h`|`arch/x86/kernel/sys_x86_64.c`|
+|[`munmap`](src/memory_management/mmap-munmap-mremap-msync-remap_file_pages.md)|11|`sys/mman.h`|`mm/mmap.c`|
 |[`pread64`](src/filesystem/read-pread64-readv-preadv-preadv2.md)|17|`unistd.h`|`fs/read_write.c`|
 |[`pwrite64`](src/filesystem/write-pwrite64-writev-pwritev-pwritev2.md)|18|`unistd.h`|`fs/read_write.c`|
 |[`readv`](src/filesystem/read-pread64-readv-preadv-preadv2.md)|19|`sys/uio.h`|`fs/read_write.c`|
 |[`writev`](src/filesystem/write-pwrite64-writev-pwritev-pwritev2.md)|20|`sys/uio.h`|`fs/read_write.c`|
 |[`select`](src/filesystem/poll-select-pselect6-ppoll.md)|23|`sys/select.h`|`fs/select.c`|
+|[`mremap`](src/memory_management/mmap-munmap-mremap-msync-remap_file_pages.md)|25|`sys/mman.h`|`mm/mremap.c`|
+|[`msync`](src/memory_management/mmap-munmap-mremap-msync-remap_file_pages.md)|26|`sys/mman.h`|`mm/msync.c`|
 |[`epoll_create`](src/filesystem/epoll_create-epoll_wait-epoll_ctl-epoll_pwait-epoll_create1.md)|213|`sys/epoll.h`|`fs/eventpoll.c`|
+|[`remap_file_pages`](src/memory_management/mmap-munmap-mremap-msync-remap_file_pages.md)|216|`sys/mman.h`|`mm/mmap.c`|
 |[`epoll_ctl`](src/filesystem/epoll_create-epoll_wait-epoll_ctl-epoll_pwait-epoll_create1.md)|232|`sys/epoll.h`|`fs/eventpoll.c`|
 |[`epoll_wait`](src/filesystem/epoll_create-epoll_wait-epoll_ctl-epoll_pwait-epoll_create1.md)|233|`sys/epoll.h`|`fs/eventpoll.c`|
 |[`openat`](src/filesystem/open-openat-name_to_handle_at-open_by_handle_at-open_tree.md)|257|`fcntl.h`|`fs/open.c`|
