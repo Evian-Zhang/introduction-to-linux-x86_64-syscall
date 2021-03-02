@@ -63,6 +63,8 @@ git pull --recurse-submodules
 |[`pselect6`](src/filesystem/poll-select-pselect6-ppoll.md)|270|`sys/select.h`|`fs/select.c`|
 |[`ppoll`](src/filesystem/poll-select-pselect6-ppoll.md)|271|`poll.h`|`fs/select.c`|
 |[`epoll_pwait`](src/filesystem/epoll_create-epoll_wait-epoll_ctl-epoll_pwait-epoll_create1.md)|281|`sys/epoll.h`|`fs/eventpoll.c`|
+|[`eventfd`](src/filesystem/eventfd-eventfd2.md)|284|`sys/eventfd.h`|`fs/eventfd.c`|
+|[`eventfd2`](src/filesystem/eventfd-eventfd2.md)|290|`sys/eventfd.h`|`fs/eventfd.c`|
 |[`epoll_create1`](src/filesystem/epoll_create-epoll_wait-epoll_ctl-epoll_pwait-epoll_create1.md)|291|`sys/epoll.h`|`fs/eventpoll.c`|
 |[`preadv`](src/filesystem/read-pread64-readv-preadv-preadv2.md)|295|`sys/uio.h`|`fs/read_write.c`|
 |[`pwritev`](src/filesystem/write-pwrite64-writev-pwritev-pwritev2.md)|296|`sys/uio.h`|`fs/read_write.c`|
