@@ -1,0 +1,599 @@
+<!DOCTYPE HTML>
+<html lang="zh-Hans" class="sidebar-visible no-js light">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>epoll_create, epoll_wait, epoll_ctl, epoll_pwait, epoll_create1 - Linux x86_64系统调用简介</title>
+        
+        
+
+
+        <!-- Custom HTML head -->
+        
+
+
+        <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff" />
+
+        
+        <link rel="icon" href="../../favicon.svg">
+        
+        
+        <link rel="shortcut icon" href="../../favicon.png">
+        
+        <link rel="stylesheet" href="../../css/variables.css">
+        <link rel="stylesheet" href="../../css/general.css">
+        <link rel="stylesheet" href="../../css/chrome.css">
+        
+        <link rel="stylesheet" href="../../css/print.css" media="print">
+        
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../../FontAwesome/css/font-awesome.css">
+        
+        <link rel="stylesheet" href="../../fonts/fonts.css">
+        
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="../../highlight.css">
+        <link rel="stylesheet" href="../../tomorrow-night.css">
+        <link rel="stylesheet" href="../../ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+        
+
+        
+    </head>
+    <body>
+        <!-- Provide site root to javascript -->
+        <script type="text/javascript">
+            var path_to_root = "../../";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "light";
+        </script>
+
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script type="text/javascript">
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script type="text/javascript">
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            var html = document.querySelector('html');
+            html.classList.remove('no-js')
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add('js');
+        </script>
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script type="text/javascript">
+            var html = document.querySelector('html');
+            var sidebar = 'hidden';
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            }
+            html.classList.remove('sidebar-visible');
+            html.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <div class="sidebar-scrollbox">
+                <ol class="chapter"><li class="chapter-item expanded affix "><a href="../../index.html">序</a></li><li class="chapter-item expanded affix "><a href="../../src/introduction.html">基础知识</a></li><li class="chapter-item expanded affix "><li class="part-title">文件系统</li><li class="chapter-item expanded "><a href="../../src/filesystem/open-openat-name_to_handle_at-open_by_handle_at-open_tree.html"><strong aria-hidden="true">1.</strong> open, openat, name_to_handle_at, open_by_handle_at, open_tree</a></li><li class="chapter-item expanded "><a href="../../src/filesystem/close.html"><strong aria-hidden="true">2.</strong> close</a></li><li class="chapter-item expanded "><a href="../../src/filesystem/read-pread64-readv-preadv-preadv2.html"><strong aria-hidden="true">3.</strong> read, pread64, readv, preadv, preadv2</a></li><li class="chapter-item expanded "><a href="../../src/filesystem/write-pwrite64-writev-pwritev-pwritev2.html"><strong aria-hidden="true">4.</strong> write, pwrite64, writev, pwritev, pwritev2</a></li><li class="chapter-item expanded "><a href="../../src/filesystem/lseek.html"><strong aria-hidden="true">5.</strong> lseek</a></li><li class="chapter-item expanded "><a href="../../src/filesystem/poll-select-pselect6-ppoll.html"><strong aria-hidden="true">6.</strong> poll, select, pselect6, ppoll</a></li><li class="chapter-item expanded "><a href="../../src/filesystem/epoll_create-epoll_wait-epoll_ctl-epoll_pwait-epoll_create1.html" class="active"><strong aria-hidden="true">7.</strong> epoll_create, epoll_wait, epoll_ctl, epoll_pwait, epoll_create1</a></li><li class="chapter-item expanded "><a href="../../src/filesystem/stat-fstat-lstat-newfstatat-statx.html"><strong aria-hidden="true">8.</strong> stat, fstat, lstat, newfstatat, statx</a></li><li class="chapter-item expanded "><a href="../../src/filesystem/eventfd-eventfd2.html"><strong aria-hidden="true">9.</strong> eventfd, eventfd2</a></li><li class="chapter-item expanded affix "><li class="part-title">内存管理</li><li class="chapter-item expanded "><a href="../../src/memory_management/mmap-munmap-mremap-msync-remap_file_pages.html"><strong aria-hidden="true">10.</strong> mmap, munmap, mremap, msync, remap_file_pages</a></li></ol>
+            </div>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                
+                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky bordered">
+                    <div class="left-buttons">
+                        <button id="sidebar-toggle" class="icon-button" type="button" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </button>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light (default)</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        
+                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                        
+                    </div>
+
+                    <h1 class="menu-title">Linux x86_64系统调用简介</h1>
+
+                    <div class="right-buttons">
+                        
+                        <a href="../../print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+                        
+                        
+                    </div>
+                </div>
+
+                
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" name="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+                
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script type="text/javascript">
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1 id="epoll_create-epoll_wait-epoll_ctl-epoll_pwait-epoll_create1系统调用"><a class="header" href="#epoll_create-epoll_wait-epoll_ctl-epoll_pwait-epoll_create1系统调用"><code>epoll_create</code>, <code>epoll_wait</code>, <code>epoll_ctl</code>, <code>epoll_pwait</code>, <code>epoll_create1</code>系统调用</a></h1>
+<h2 id="系统调用号"><a class="header" href="#系统调用号">系统调用号</a></h2>
+<ul>
+<li><code>epoll_create</code>: 213</li>
+<li><code>epoll_wait</code>: 232</li>
+<li><code>epoll_ctl</code>: 233</li>
+<li><code>epoll_pwait</code>: 281</li>
+<li><code>epoll_create1</code>: 291</li>
+</ul>
+<h2 id="函数原型"><a class="header" href="#函数原型">函数原型</a></h2>
+<h3 id="内核接口"><a class="header" href="#内核接口">内核接口</a></h3>
+<pre><code class="language-c">asmlinkage long sys_epoll_create(int size);
+asmlinkage long sys_epoll_wait(int epfd, struct epoll_event __user *events, int maxevents, int timeout);
+asmlinkage long sys_epoll_ctl(int epfd, int op, int fd, struct epoll_event __user *event);
+asmlinkage long sys_epoll_pwait(int epfd, struct epoll_event __user *events, int maxevents, int timeout, const sigset_t __user *sigmask, size_t sigsetsize);
+asmlinkage long sys_epoll_create1(int flags);
+</code></pre>
+<h3 id="glibc封装"><a class="header" href="#glibc封装">glibc封装</a></h3>
+<pre><code class="language-c">#include &lt;sys/epoll.h&gt;
+int epoll_create(int size);
+int epoll_wait(int epfd, struct epoll_event *events, int maxevents, int timeout);
+int epoll_ctl(int epfd, int op, int fd, struct epoll_event *event);
+int epoll_pwait(int epfd, struct epoll_event *events, int maxevents, int timeout, const sigset_t *sigmask);
+int epoll_create1(int flags);
+</code></pre>
+<h2 id="简介"><a class="header" href="#简介">简介</a></h2>
+<p>与<a href="./poll-select-pselect6-ppoll.html"><code>select</code>和<code>poll</code></a>一样，epoll机制也是为了实现IO多路复用。其使用方法更先进，内部实现也更高效。</p>
+<p>我们可以理解为，Linux内核为了实现epoll机制，在内核空间维护了一个数据结构，称为epoll实例。其包含两个集合，一个是由用户感兴趣的文件描述符与相应的事件组成，另一个是由触发了相应事件的文件描述符与相应的事件组成。</p>
+<p>我们的整体步骤是</p>
+<ol>
+<li>创建一个epoll实例</li>
+<li>对于epoll实例，将我们感兴趣的文件描述符与相应的事件添加到集合中</li>
+<li>从触发事件的集合中提取相应的文件描述符</li>
+</ol>
+<h2 id="使用"><a class="header" href="#使用">使用</a></h2>
+<h3 id="epoll_create与epoll_create1"><a class="header" href="#epoll_create与epoll_create1"><code>epoll_create</code>与<code>epoll_create1</code></a></h3>
+<p>其函数签名为</p>
+<pre><code class="language-c">int epoll_create(int size);
+int epoll_create1(int flags);
+</code></pre>
+<p>这两个系统调用就是在内核空间创建一个epoll实例，返回该实例的文件描述符。</p>
+<p>对于<code>epoll_create</code>，<code>size</code>参数是被忽略的，但其必须大于0。</p>
+<p><code>epoll_create1</code>是<code>epoll_create</code>的加强版。如果<code>flags</code>为0，则其行为与<code>epoll_create</code>一致。此外，<code>flags</code>还可以加入<code>EPOLL_CLOEXEC</code>标志位，和<code>open</code>中的<code>O_CLOEXEC</code>标志位功能一致，具体请看<a href="./open-openat-name_to_handle_at-open_by_handle_at-open_tree.html">相应的描述</a>。</p>
+<p>由<code>epoll_create</code>和<code>epoll_create1</code>创建的文件描述符，也就是epoll实例对应的文件描述符也应在程序结束前使用<code>close</code>关闭。但我们应当注意，正如<a href="./open-openat-name_to_handle_at-open_by_handle_at-open_tree.html">在<code>open</code>中描述的</a>，如果使用了<code>dup</code>或者<code>fork</code>等会复制文件描述符的操作，我们将会有多个文件描述符指向Linux内核空间中的epoll实例。只有所有的指向该epoll实例的文件描述符都被关闭，其内核空间中的资源才会被释放。</p>
+<h3 id="epoll_ctl"><a class="header" href="#epoll_ctl"><code>epoll_ctl</code></a></h3>
+<p>其函数签名为</p>
+<pre><code class="language-c">int epoll_ctl(int epfd, int op, int fd, struct epoll_event *event);
+</code></pre>
+<p>其可以看作epoll机制中较为核心的系统调用。</p>
+<p>总的来说，该系统调用接受的四个参数的意义为：</p>
+<ul>
+<li>
+<p><code>epfd</code></p>
+<p>epoll实例的文件描述符</p>
+</li>
+<li>
+<p><code>op</code></p>
+<p>希望进行的操作</p>
+</li>
+<li>
+<p><code>fd</code></p>
+<p>感兴趣的文件描述符</p>
+</li>
+<li>
+<p><code>events</code></p>
+<p>对应于该文件描述符，感兴趣的事件</p>
+</li>
+</ul>
+<p>首先，<code>epfd</code>的意义很简单，就是我们调用<code>epoll_create</code>或<code>epoll_create1</code>返回的epoll实例的文件描述符。</p>
+<p><code>op</code>是我们希望进行的操作，包括：</p>
+<ul>
+<li>
+<p><code>EPOLL_CTL_ADD</code></p>
+<p>向epoll实例的用户感兴趣的集合中增添元素，文件描述符由<code>fd</code>给出，感兴趣的事件由<code>event</code>给出</p>
+</li>
+<li>
+<p><code>EPOLL_CTL_MOD</code></p>
+<p>修改epoll实例的用户感兴趣的集合中的元素。希望修改的元素的文件描述符由<code>fd</code>给出，修改后的事件由<code>event</code>给出</p>
+</li>
+<li>
+<p><code>EPOLL_CTL_DEL</code></p>
+<p>删除epoll实例的用户感兴趣的集合中的元素。希望删除的元素的文件描述符由<code>fd</code>给出，<code>event</code>变量将被忽略，可以为<code>NULL</code></p>
+</li>
+</ul>
+<p>而<code>fd</code>和<code>events</code>就是这个系统调用的核心参数。</p>
+<p><code>fd</code>可以<strong>看作</strong>在<b><code>epoll_ctl</code>阶段</b>，在epoll实例中，用于区分用户感兴趣的集合中的不同元素的方法。这是因为，我们的增加、修改、删除操作，都是基于<code>fd</code>来选择相应的元素的。</p>
+<p>这里有一点需要我们考虑。我们考虑以下情况：</p>
+<p>我们通过<code>dup</code>、<code>fork</code>等复制文件描述符的操作，创造了<code>fd1</code>和<code>fd2</code>这两个文件描述符，但是其都指向同一个文件描述。如果我们将<code>fd1</code>和<code>fd2</code>都加入epoll实例的用户感兴趣的集合，同时其对应的用户感兴趣的事件是不同的。然后，我们使用<code>close</code>关闭<code>fd1</code>。但由于文件描述没有被释放，在我们使用<code>epoll_wait</code>获取触发了的事件时，仍然会有<code>fd1</code>对应的事件报告出来。</p>
+<p>因此，只有指向同一文件描述的所有文件描述符都被关闭，在epoll实例的用户感兴趣的集合中才会删除所有相应的元素。所以，我们在使用<code>close</code>关闭某个被加入epoll实例的文件描述符之前，记得要使用<code>EPOLL_CTL_DEL</code>操作先删除相应的元素。</p>
+<p><code>event</code>参数的类型是<code>struct epoll_event</code>的指针。结合我们之后将到的<code>epoll_wait</code>，这个参数的作用是标记相应的事件。当我们把这个参数传递给<code>epoll_ctl</code>时，这个参数表明我们关心的事件。随后我们使用<code>epoll_wait</code>同样会获得这个类型的实例，其表明触发的事件。</p>
+<p><code>struct epoll_event</code>的定义为</p>
+<pre><code class="language-c">struct epoll_event {
+    uint32_t     events;      /* Epoll events */
+    epoll_data_t data;        /* User data variable */
+};
+</code></pre>
+<p>首先来讲讲<code>data</code>字段。<code>epoll_data_t</code>的定义为</p>
+<pre><code class="language-c">typedef union epoll_data {
+    void        *ptr;
+    int          fd;
+    uint32_t     u32;
+    uint64_t     u64;
+} epoll_data_t;
+</code></pre>
+<p>这个字段对epoll实例来说并不会起到实际的用途。当我们把<code>data</code>作为一个字段，放在某个用户感兴趣的<code>epoll_event</code>事件中，传入<code>epoll_ctl</code>函数，那么内核就会记录这个<code>data</code>。当相应的事件触发之后，用户使用<code>epoll_wait</code>等获得相应的事件，此时<code>data</code>会不经修改地出现在返回的事件中。</p>
+<p>这个<code>data</code>常见的用途是，由于<code>epoll_wait</code>等方法获得事件时，无法直接获得该事件对应的文件描述符，所以我们在使用<code>epoll_ctl</code>时，将文件描述符作为<code>data</code>即可。随后在<code>epoll_wait</code>获得的事件中，取其<code>data</code>字段，获得相应的<code>fd</code>。</p>
+<p>而<code>events</code>字段是epoll的核心。<code>events</code>字段是一个位掩码，其主要包含以下几种标志位：</p>
+<ul>
+<li>
+<p><code>EPOLLET</code></p>
+<p>epoll处理的事件有两种模式：边沿触发（edge-triggered）与水平触发（level-triggered）。</p>
+<p>考虑以下情形：</p>
+<ol>
+<li>我们向<code>epoll</code>实例注册一个文件描述符<code>rfd</code>，其代表某个管道的读端。我们关心其是否已经可读</li>
+<li>从写端往管道里写了2KB数据</li>
+<li>我们使用<code>epoll_wait</code>获得触发了的事件，其中包括我们事先注册的<code>rfd</code></li>
+<li>我们从<code>rfd</code>读取了1KB数据</li>
+<li>我们再次使用<code>epoll_wait</code></li>
+</ol>
+<p>如果是边沿触发模式，那么epoll只会在第3步的<code>epoll_wait</code>中给出<code>rfd</code>被触发的事件，第5步则不会给出相应的事件；如果是水平触发，那么epoll在第3步和第5步都会给出相应的事件。</p>
+<p>也就是说，只有在相应的文件描述符<strong>状态发生变化</strong>，从别的状态变成我们感兴趣的状态时，“边沿触发”才会给出我们相应的事件；只要相应的文件描述符<strong>处于感兴趣的状态</strong>时，“水平触发”就会给出我们相应的事件。</p>
+<p>因此，当我们使用边沿触发模式时，我们的<code>read</code>或<code>write</code>操作不能只使用一次，因为之后相关的事件就不会被触发，也就不能读取或写入完整的数据了。我们应当在循环中使用<code>read</code>或<code>write</code>，直到其返回错误<code>EAGAIN</code>（详见<a href="./open-openat-name_to_handle_at-open_by_handle_at-open_tree.html">open</a>）。同时由于<code>EAGAIN</code>错误只有在使用<code>O_NONBLOCK</code>标志位打开文件时才会出现，所以我们在使用边沿触发时要注意两点：</p>
+<ul>
+<li>使用非阻塞的文件描述符</li>
+<li><code>read</code>和<code>write</code>要一直读取或写入到返回<code>EAGAIN</code>错误</li>
+</ul>
+<p>如果我们的<code>events</code>包含标志位<code>EPOLLET</code>，则该事件是边沿触发模式；如果不包含该标志位，则该事件是水平触发模式。</p>
+<p>该标志位只可包含在传递给<code>epoll_ctl</code>的<code>events</code>中，不会出现在<code>epoll_wait</code>等返回的<code>events</code>中。</p>
+</li>
+<li>
+<p><code>EPOLLIN</code></p>
+<p>文件描述符已经可以被读取</p>
+</li>
+<li>
+<p><code>EPOLLOUT</code></p>
+<p>文件描述符已经可以被写入</p>
+</li>
+<li>
+<p><code>EPOLLRDHUP</code></p>
+<p>流套接字的对端关闭连接</p>
+</li>
+<li>
+<p><code>EPOLLPRI</code></p>
+<p><code>select</code>中的其他条件，<code>poll</code>中的<code>POLLPRI</code></p>
+</li>
+<li>
+<p><code>EPOLLERR</code></p>
+<p>出现错误。</p>
+<p>该标志位可能出现在<code>epoll_wait</code>等返回的<code>events</code>中，epoll默认关注这样的状态，因此并没有必要包含在传递给<code>epoll_ctl</code>的<code>events</code>中</p>
+</li>
+<li>
+<p><code>EPOLLHUP</code></p>
+<p>相关的文件描述符处于挂起状态。</p>
+<p>该标志位可能出现在<code>epoll_wait</code>等返回的<code>events</code>中，epoll默认关注这样的状态，因此并没有必要包含在传递给<code>epoll_ctl</code>的<code>events</code>中</p>
+</li>
+<li>
+<p><code>EPOLLONESHOT</code></p>
+<p>如果包含该标志位，该事件被触发，被<code>epoll_wait</code>等返回，那么该事件对应的文件描述符将不再会有别的事件被epoll实例关注。也就是说，如果该文件描述符别的事件出现了，epoll实例并不会返回相应的结果。</p>
+<p>如果要再次接受相应的事件，就应在<code>epoll_ctl</code>中使用<code>EPOLL_CTL_MOD</code>，给该事件新的事件掩码。</p>
+<p>在一个多线程程序中，如果我们在一个循环中调用epoll，每次获得一个触发的事件，就开启一个新的线程去处理，那么有可能某个状态没有改变，但是导致某个事件被多次触发，从而使得我们有多个线程去处理同一个文件描述符的状态。因此我们可以使用<code>EPOLLONESHOT</code>标志位来避免这种事。</p>
+<p>该标志位只可包含在传递给<code>epoll_ctl</code>的<code>events</code>中，不会出现在<code>epoll_wait</code>等返回的<code>events</code>中。</p>
+</li>
+</ul>
+<h3 id="epoll_wait与epoll_pwait"><a class="header" href="#epoll_wait与epoll_pwait"><code>epoll_wait</code>与<code>epoll_pwait</code></a></h3>
+<p>这两个系统调用的函数签名为</p>
+<pre><code class="language-c">int epoll_wait(int epfd, struct epoll_event *events, int maxevents, int timeout);
+int epoll_pwait(int epfd, struct epoll_event *events, int maxevents, int timeout, const sigset_t *sigmask);
+</code></pre>
+<p><code>epoll_wait</code>与<code>epoll_pwait</code>就是从epoll实例的准备好的集合中，获取相应的事件。其参数包括：</p>
+<ul>
+<li><code>epfd</code>为epoll实例的文件描述符。</li>
+<li><code>events</code>为一个数组，其元素类型为<code>struct epoll_event</code>，长度为<code>maxevents</code>。</li>
+<li><code>timeout</code>为超时参数。</li>
+</ul>
+<p>对于<code>events</code>参数，epoll实例会从准备好的集合中，选取至多<code>maxevents</code>个事件放入该数组中。</p>
+<p>对于<code>timeout</code>参数，其精度为毫秒，如果其为-1，则<code>epoll_wait</code>将无限等待；如果其为0，则<code>epoll_wait</code>将立即返回。</p>
+<p><code>epoll_wait</code>的返回值为准备好的文件描述符的个数。</p>
+<p>与<code>pselect</code>和<code>ppoll</code>类似，<code>epoll_pwait</code>就是加上了信号掩码的<code>epoll_wait</code>。</p>
+<p>因此，如果使用epoll来实现我们在<a href="./poll-select-pselect6-ppoll.html"><code>select</code>与<code>poll</code></a>中提出的方案三，其方法为：</p>
+<pre><code class="language-c">void process_fds(int *fds, int nfd) {
+    int epfd = epoll_create1(0);
+    for (int i = 0; i &lt; nfd; i++) {
+        struct epoll_event ev;
+        ev.events = EPOLLIN;
+        ev.data.fd = fds[i];
+        epoll_ctl(epfd, EPOLL_CTL_ADD, fds[i], &amp;ev);
+    }
+    struct epoll_event *events = (struct epoll_event *)malloc(nfd * sizeof(struct epoll_event));
+    while (1) {
+        int ready_nfd = epoll_wait(epfd, events, nfd, -1);
+        if (ready_nfd &lt;= 0) {
+            break;
+        }
+        for (int i = 0; i &lt; ready_nfd; i++) {
+            if (events[i].events &amp; EPOLLIN) {
+                char buf[64];
+                read(events[i].data.fd, buf, 64);
+                process_read_content(buf);
+            }
+        }
+    }
+}
+</code></pre>
+<h2 id="实现"><a class="header" href="#实现">实现</a></h2>
+<p>epoll的实现位于Linux内核的<code>fs/eventpoll.c</code>文件中。</p>
+<p>在epoll的实现中，有两个结构体最为关键：<code>struct eventpoll</code>与<code>struct epitem</code>。</p>
+<p><code>struct eventpoll</code>就是内核中的epoll实例的结构体，而<code>struct epitem</code>就是一个文件描述符与它相关的事件组成的结构体，也就是epoll实例的两个集合的元素。</p>
+<p>它们的<strong>部分</strong>字段如下：</p>
+<p><code>struct eventpoll</code>:</p>
+<pre><code class="language-c">struct eventpoll {
+	/* Wait queue used by sys_epoll_wait() */
+	wait_queue_head_t wq;
+
+	/* Wait queue used by file-&gt;poll() */
+	wait_queue_head_t poll_wait;
+
+	/* List of ready file descriptors */
+	struct list_head rdllist;
+
+	/* RB tree root used to store monitored fd structs */
+	struct rb_root_cached rbr;
+
+	/*
+	 * This is a single linked list that chains all the &quot;struct epitem&quot; that
+	 * happened while transferring ready events to userspace w/out
+	 * holding -&gt;lock.
+	 */
+	struct epitem *ovflist;
+
+	/* wakeup_source used when ep_scan_ready_list is running */
+	struct wakeup_source *ws;
+
+	struct list_head visited_list_link;
+};
+</code></pre>
+<p><code>struct epitem</code>:</p>
+<pre><code class="language-c">struct epitem {
+	union {
+		/* RB tree node links this structure to the eventpoll RB tree */
+		struct rb_node rbn;
+		/* Used to free the struct epitem */
+		struct rcu_head rcu;
+	};
+
+	/* List header used to link this structure to the eventpoll ready list */
+	struct list_head rdllink;
+
+	/*
+	 * Works together &quot;struct eventpoll&quot;-&gt;ovflist in keeping the
+	 * single linked chain of items.
+	 */
+	struct epitem *next;
+
+	/* The file descriptor information this item refers to */
+	struct epoll_filefd ffd;
+
+	/* Number of active wait queue attached to poll operations */
+	int nwait;
+
+	/* List containing poll wait queues */
+	struct list_head pwqlist;
+
+	/* The &quot;container&quot; of this item */
+	struct eventpoll *ep;
+
+	/* List header used to link this item to the &quot;struct file&quot; items list */
+	struct list_head fllink;
+
+	/* wakeup_source used when EPOLLWAKEUP is set */
+	struct wakeup_source __rcu *ws;
+
+	/* The structure that describe the interested events and the source fd */
+	struct epoll_event event;
+};
+</code></pre>
+<p>首先是<code>struct rb_root_cached rbr</code>这个字段。这就是epoll实例中用于存储用户感兴趣的事件的结构。它是一个红黑树，其包含的元素可以看作我们的<code>struct epitem</code>（其字段<code>rbn</code>就是表示在这棵红黑树的节点）。当我们使用<code>epoll_create</code>创建一个epoll实例时，这棵红黑树被初始化。当我们使用<code>epoll_ctl</code>去操作感兴趣的集合时，我们实际上就是增添、修改、删除这棵红黑树的元素。</p>
+<p>这里值得注意的是，我们之前提到，在<code>epoll_ctl</code>阶段，可以把文件描述符<strong>看作</strong>集合的键，在我们操作这个集合的时候，通过这个键来区分不同的元素。但实际并不是这样。</p>
+<p>以这棵红黑树的插入为例，其实现为<code>ep_rbtree_insert</code>:</p>
+<pre><code class="language-c">static void ep_rbtree_insert(struct eventpoll *ep, struct epitem *epi)
+{
+	int kcmp;
+	struct rb_node **p = &amp;ep-&gt;rbr.rb_root.rb_node, *parent = NULL;
+	struct epitem *epic;
+	bool leftmost = true;
+
+	while (*p) {
+		parent = *p;
+		epic = rb_entry(parent, struct epitem, rbn);
+		kcmp = ep_cmp_ffd(&amp;epi-&gt;ffd, &amp;epic-&gt;ffd);
+		if (kcmp &gt; 0) {
+			p = &amp;parent-&gt;rb_right;
+			leftmost = false;
+		} else
+			p = &amp;parent-&gt;rb_left;
+	}
+	rb_link_node(&amp;epi-&gt;rbn, parent, p);
+	rb_insert_color_cached(&amp;epi-&gt;rbn, &amp;ep-&gt;rbr, leftmost);
+}
+</code></pre>
+<p>可以看到在11行，通过调用<code>ep_cmp_ffd</code>来判断是否两个元素相同。首先我们来看看<code>struct epitem</code>的<code>ffd</code>字段，其类型为<code>struct epoll_filefd</code>:</p>
+<pre><code class="language-c">struct epoll_filefd {
+	struct file *file;
+	int fd;
+} __packed;
+</code></pre>
+<p>而<code>ep_cmp_ffd</code>的实现为</p>
+<pre><code class="language-c">static inline int ep_cmp_ffd(struct epoll_filefd *p1, struct epoll_filefd *p2)
+{
+	return (p1-&gt;file &gt; p2-&gt;file ? +1:
+	        (p1-&gt;file &lt; p2-&gt;file ? -1 : p1-&gt;fd - p2-&gt;fd));
+}
+</code></pre>
+<p>因此我们可以看到，内核是同时使用文件描述与文件描述符作为这棵红黑树的键的。</p>
+<p>如果我们想通过<code>epoll_ctl</code>增加一个我们感兴趣的元素，我们做的核心实际上是增加了一个回调函数。首先我们需要知道，在<code>include/linux/poll.h</code>中，我们对某个文件的<code>poll</code>操作，其最终是这样的情形：</p>
+<pre><code class="language-c">/* 
+ * structures and helpers for f_op-&gt;poll implementations
+ */
+typedef void (*poll_queue_proc)(struct file *, wait_queue_head_t *, struct poll_table_struct *);
+
+/*
+ * Do not touch the structure directly, use the access functions
+ * poll_does_not_wait() and poll_requested_events() instead.
+ */
+typedef struct poll_table_struct {
+	poll_queue_proc _qproc;
+	__poll_t _key;
+} poll_table;
+
+static inline __poll_t vfs_poll(struct file *file, struct poll_table_struct *pt)
+{
+	if (unlikely(!file-&gt;f_op-&gt;poll))
+		return DEFAULT_POLLMASK;
+	return file-&gt;f_op-&gt;poll(file, pt);
+}
+</code></pre>
+<p>我们使用<code>vfs_poll</code>之后，会把<code>file</code>和<code>pt</code>传入其对应的实现中。而<code>pt</code>是<code>struct poll_table_struct</code>的指针，其中，<code>_key</code>字段是一个掩码，表明哪些事件是用户关注的；<code>poll_queue_proc _qproc</code>是一个函数指针。当出现了<code>_key</code>中的事件时，会自动触发这个回调函数。</p>
+<p>当我们使用<code>epoll_ctl</code>去创建新的红黑树节点时，有一步为</p>
+<pre><code class="language-c">/* Initialize the poll table using the queue callback */
+epq.epi = epi;
+init_poll_funcptr(&amp;epq.pt, ep_ptable_queue_proc);
+
+/*
+ * Attach the item to the poll hooks and get current event bits.
+ * We can safely use the file* here because its usage count has
+ * been increased by the caller of this function. Note that after
+ * this operation completes, the poll callback can start hitting
+ * the new item.
+ */
+revents = ep_item_poll(epi, &amp;epq.pt, 1);
+</code></pre>
+<p>这就是我们设置相应回调函数的地方。<code>epq</code>的类型是<code>struct ep_pqueue</code>，其定义为</p>
+<pre><code class="language-c">struct ep_pqueue {
+	poll_table pt;
+	struct epitem *epi;
+};
+</code></pre>
+<p>也就是说把<code>poll_table</code>封装了一层。我们通过<code>init_poll_funcptr</code>设置了<code>epq</code>的<code>poll_table</code>，然后通过<code>ep_item_poll</code>把这个<code>poll_table</code>传入了最终的<code>vfs_poll</code>函数中。</p>
+<p>在epoll中，<code>poll_table</code>的<code>_key</code>字段，也就是用户感兴趣的事件是全部事件，epoll会从触发的事件中筛选出用户感兴趣的事件。回调函数则是<code>ep_ptable_queue_proc</code>，其设置了回调函数<code>ep_poll_callback</code>。</p>
+<p>TODO：增加更多的描述。参考资料：</p>
+<ul>
+<li><a href="https://idndx.com/the-implementation-of-epoll-1/">the-implementation-of-epoll-1</a></li>
+<li><a href="https://idndx.com/the-implementation-of-epoll-2/">the-implementation-of-epoll-2</a></li>
+<li><a href="https://idndx.com/the-implementation-of-epoll-3/">the-implementation-of-epoll-3</a></li>
+<li><a href="https://idndx.com/the-implementation-of-epoll-4/">the-implementation-of-epoll-4</a></li>
+</ul>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                        
+                            <a rel="prev" href="../../src/filesystem/poll-select-pselect6-ppoll.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+                        
+
+                        
+                            <a rel="next" href="../../src/filesystem/stat-fstat-lstat-newfstatat-statx.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+                        
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                
+                    <a rel="prev" href="../../src/filesystem/poll-select-pselect6-ppoll.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+                
+
+                
+                    <a rel="next" href="../../src/filesystem/stat-fstat-lstat-newfstatat-statx.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+                
+            </nav>
+
+        </div>
+
+        
+
+        
+
+        
+
+        
+        <script type="text/javascript">
+            window.playground_copyable = true;
+        </script>
+        
+
+        
+
+        
+        <script src="../../elasticlunr.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="../../mark.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="../../searcher.js" type="text/javascript" charset="utf-8"></script>
+        
+
+        <script src="../../clipboard.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="../../highlight.js" type="text/javascript" charset="utf-8"></script>
+        <script src="../../book.js" type="text/javascript" charset="utf-8"></script>
+
+        <!-- Custom JS scripts -->
+        
+
+        
+
+    </body>
+</html>

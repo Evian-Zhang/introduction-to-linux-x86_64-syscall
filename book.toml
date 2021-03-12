@@ -1,0 +1,9 @@
+[book]
+authors = ["Evian-Zhang"]
+language = "zh-Hans"
+multilingual = false
+src = "."
+title = "Linux x86_64系统调用简介"
+
+[build]
+create-missing = false

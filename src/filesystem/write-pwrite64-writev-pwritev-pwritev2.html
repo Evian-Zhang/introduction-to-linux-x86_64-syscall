@@ -1,0 +1,383 @@
+<!DOCTYPE HTML>
+<html lang="zh-Hans" class="sidebar-visible no-js light">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>write, pwrite64, writev, pwritev, pwritev2 - Linux x86_64系统调用简介</title>
+        
+        
+
+
+        <!-- Custom HTML head -->
+        
+
+
+        <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff" />
+
+        
+        <link rel="icon" href="../../favicon.svg">
+        
+        
+        <link rel="shortcut icon" href="../../favicon.png">
+        
+        <link rel="stylesheet" href="../../css/variables.css">
+        <link rel="stylesheet" href="../../css/general.css">
+        <link rel="stylesheet" href="../../css/chrome.css">
+        
+        <link rel="stylesheet" href="../../css/print.css" media="print">
+        
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../../FontAwesome/css/font-awesome.css">
+        
+        <link rel="stylesheet" href="../../fonts/fonts.css">
+        
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="../../highlight.css">
+        <link rel="stylesheet" href="../../tomorrow-night.css">
+        <link rel="stylesheet" href="../../ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+        
+
+        
+    </head>
+    <body>
+        <!-- Provide site root to javascript -->
+        <script type="text/javascript">
+            var path_to_root = "../../";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "light";
+        </script>
+
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script type="text/javascript">
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script type="text/javascript">
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            var html = document.querySelector('html');
+            html.classList.remove('no-js')
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add('js');
+        </script>
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script type="text/javascript">
+            var html = document.querySelector('html');
+            var sidebar = 'hidden';
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            }
+            html.classList.remove('sidebar-visible');
+            html.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <div class="sidebar-scrollbox">
+                <ol class="chapter"><li class="chapter-item expanded affix "><a href="../../index.html">序</a></li><li class="chapter-item expanded affix "><a href="../../src/introduction.html">基础知识</a></li><li class="chapter-item expanded affix "><li class="part-title">文件系统</li><li class="chapter-item expanded "><a href="../../src/filesystem/open-openat-name_to_handle_at-open_by_handle_at-open_tree.html"><strong aria-hidden="true">1.</strong> open, openat, name_to_handle_at, open_by_handle_at, open_tree</a></li><li class="chapter-item expanded "><a href="../../src/filesystem/close.html"><strong aria-hidden="true">2.</strong> close</a></li><li class="chapter-item expanded "><a href="../../src/filesystem/read-pread64-readv-preadv-preadv2.html"><strong aria-hidden="true">3.</strong> read, pread64, readv, preadv, preadv2</a></li><li class="chapter-item expanded "><a href="../../src/filesystem/write-pwrite64-writev-pwritev-pwritev2.html" class="active"><strong aria-hidden="true">4.</strong> write, pwrite64, writev, pwritev, pwritev2</a></li><li class="chapter-item expanded "><a href="../../src/filesystem/lseek.html"><strong aria-hidden="true">5.</strong> lseek</a></li><li class="chapter-item expanded "><a href="../../src/filesystem/poll-select-pselect6-ppoll.html"><strong aria-hidden="true">6.</strong> poll, select, pselect6, ppoll</a></li><li class="chapter-item expanded "><a href="../../src/filesystem/epoll_create-epoll_wait-epoll_ctl-epoll_pwait-epoll_create1.html"><strong aria-hidden="true">7.</strong> epoll_create, epoll_wait, epoll_ctl, epoll_pwait, epoll_create1</a></li><li class="chapter-item expanded "><a href="../../src/filesystem/stat-fstat-lstat-newfstatat-statx.html"><strong aria-hidden="true">8.</strong> stat, fstat, lstat, newfstatat, statx</a></li><li class="chapter-item expanded "><a href="../../src/filesystem/eventfd-eventfd2.html"><strong aria-hidden="true">9.</strong> eventfd, eventfd2</a></li><li class="chapter-item expanded affix "><li class="part-title">内存管理</li><li class="chapter-item expanded "><a href="../../src/memory_management/mmap-munmap-mremap-msync-remap_file_pages.html"><strong aria-hidden="true">10.</strong> mmap, munmap, mremap, msync, remap_file_pages</a></li></ol>
+            </div>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                
+                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky bordered">
+                    <div class="left-buttons">
+                        <button id="sidebar-toggle" class="icon-button" type="button" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </button>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light (default)</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        
+                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                        
+                    </div>
+
+                    <h1 class="menu-title">Linux x86_64系统调用简介</h1>
+
+                    <div class="right-buttons">
+                        
+                        <a href="../../print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+                        
+                        
+                    </div>
+                </div>
+
+                
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" name="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+                
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script type="text/javascript">
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1 id="write-pwrite64-writev-pwritev-pwritev2系统调用"><a class="header" href="#write-pwrite64-writev-pwritev-pwritev2系统调用"><code>write</code>, <code>pwrite64</code>, <code>writev</code>, <code>pwritev</code>, <code>pwritev2</code>系统调用</a></h1>
+<h2 id="write与pwrite64"><a class="header" href="#write与pwrite64"><code>write</code>与<code>pwrite64</code></a></h2>
+<h3 id="系统调用号"><a class="header" href="#系统调用号">系统调用号</a></h3>
+<p><code>write</code>的系统调用号为1，<code>pwrite64</code>的系统调用号为18。</p>
+<h3 id="函数原型"><a class="header" href="#函数原型">函数原型</a></h3>
+<h4 id="内核接口"><a class="header" href="#内核接口">内核接口</a></h4>
+<pre><code class="language-c">asmlinkage long sys_write(unsigned int fd, const char __user *buf, size_t count);
+asmlinkage long sys_pwrite64(unsigned int fd, const char __user *buf, size_t count, loff_t pos);
+</code></pre>
+<h4 id="glibc封装"><a class="header" href="#glibc封装">glibc封装</a></h4>
+<pre><code class="language-c">#include &lt;unistd.h&gt;
+ssize_t write(int fd, const void *buf, size_t count);
+ssize_t pwrite(int fd, const void *buf, size_t count, off_t offset);
+</code></pre>
+<h3 id="简介"><a class="header" href="#简介">简介</a></h3>
+<p><code>write</code>和<code>pwrite</code>是最基础的对文件写入的系统调用。<code>write</code>会将<code>buf</code>中<code>count</code>个字节写入描述符为<code>fd</code>的文件中，而<code>pread</code>则会将<code>buf</code>中<code>count</code>个字节写入描述符为<code>fd</code>的文件从<code>offset</code>开始的位置中。如果写入成功，这两个系统调用都将返回写入的字节数。因此，这两个系统调用主要的区别就在于写入的位置，其它功能均类似。</p>
+<p>注意点：</p>
+<p>首先，是文件偏移的问题：</p>
+<ul>
+<li>
+<p>写入前位置</p>
+<p>显然，<code>pwrite</code>是从文件偏移为<code>offset</code>的位置开始写入，但是<code>write</code>的问题则比较特殊。一般来说，<code>write</code>开始写入时的文件偏移就是当前的文件偏移，但是，当文件描述符是通过<code>open</code>系统调用创建，且创建时使用了<code>O_APPEND</code>标志位的话，每次<code>write</code>开始写入前，都会默认将文件偏移移到文件末尾。</p>
+</li>
+<li>
+<p>写入后位置</p>
+<p>同<code>read</code>和<code>pread</code>类似，<code>write</code>在成功写入n个字节后，会将文件偏移更新n个字节；但<code>pwrite</code>则不会更新文件偏移，因此和<code>pread</code>一起常用于多线程的代码中。</p>
+</li>
+</ul>
+<p>我们可以通过<a href="https://github.com/Evian-Zhang/introduction-to-linux-x86_64-syscall/tree/master/codes/write-pwrite">一个简单的程序</a>检测这个性质</p>
+<pre><code class="language-c">#include &lt;fcntl.h&gt;
+#include &lt;unistd.h&gt;
+#include &lt;sys/types.h&gt;
+#include &lt;stdio.h&gt;
+
+void test_file_offset(int fd) {
+    char read_buf[16];
+    char write_buf[] = &quot;payload&quot;;
+    printf(&quot;File offset is %zd.\n&quot;, lseek(fd, 0, SEEK_CUR));
+    ssize_t read_length = read(fd, read_buf, 4);
+    read_buf[read_length] = '\0';
+    printf(&quot;Read %zd bytes: %s.\n&quot;, read_length, read_buf);
+    printf(&quot;File offset is %zd.\n&quot;, lseek(fd, 0, SEEK_CUR));
+    printf(&quot;Write %zd bytes.\n&quot;, write(fd, write_buf, 7));
+    printf(&quot;File offset is %zd.\n&quot;, lseek(fd, 0, SEEK_CUR));
+    read_length = read(fd, read_buf, 4);
+    read_buf[read_length] = '\0';
+    printf(&quot;Read %zd bytes: %s.\n&quot;, read_length, read_buf);
+    printf(&quot;File offset is %zd.\n&quot;, lseek(fd, 0, SEEK_CUR));
+}
+
+int main() {
+    int fd_with_append = open(&quot;./text.txt&quot;, O_RDWR | O_APPEND);
+    printf(&quot;File opened with O_APPEND:\n&quot;);
+    test_file_offset(fd_with_append);
+    close(fd_with_append);
+    int fd_without_append = open(&quot;./text.txt&quot;, O_RDWR);
+    printf(&quot;File opened without O_APPEND:\n&quot;);
+    test_file_offset(fd_without_append);
+    close(fd_without_append);
+    return 0;
+}
+</code></pre>
+<p>输出为</p>
+<pre><code class="language-plaintext">File opened with O_APPEND:
+File offset is 0.
+Read 4 bytes: 1234.
+File offset is 4.
+Write 7 bytes.
+File offset is 13.
+Read 0 bytes: .
+File offset is 13.
+File opened without O_APPEND:
+File offset is 0.
+Read 4 bytes: 1234.
+File offset is 4.
+Write 7 bytes.
+File offset is 11.
+Read 2 bytes: ad.
+File offset is 13.
+</code></pre>
+<p>我们在同目录中有一个文本文件<code>text.txt</code>，它的内容为六字节长的字符串&quot;123456&quot;。</p>
+<ul>
+<li>首先，我们使用<code>O_APPEND</code>标志位创建文件描述符<code>fd_with_append</code>。
+<ol>
+<li>使用<code>read</code>读入4字节。在读入前文件偏移为0，读入成功4字节，文件偏移为4，且读入的字符串为&quot;1234&quot;。</li>
+<li>使用<code>write</code>写入7字节长度字符串&quot;payload&quot;。在写入前，文件偏移被移至文件末尾6，因此成功写入7字节后，文件偏移为13。</li>
+<li>使用<code>read</code>读入4字节。在读入前，文件偏移为13，处于文件末尾，无内容读入，所以读入字节为0，读入后文件偏移依然为13。</li>
+<li>最终，<code>text.txt</code>的内容为&quot;123456payload&quot;。</li>
+</ol>
+</li>
+<li>接着，我们不使用<code>O_APPEND</code>标志位创建文件描述符<code>fd_without_append</code>。
+<ol>
+<li>使用<code>read</code>读入4字节。在读入前文件偏移为0，读入成功4字节，文件偏移为4，且读入的字符串为&quot;1234&quot;。</li>
+<li>使用<code>write</code>写入7字节长度字符串&quot;payload&quot;。写入前文件偏移为4，写入成功7字节，文件偏移为11。此时<code>text.txt</code>的内容为&quot;1234payloadad&quot;。</li>
+<li>使用<code>read</code>读入4字节。在读入前，文件偏移为11，文件总长度为13字节，所以只能读入成功2字节，读入后文件偏移为13，读入的字符串为&quot;ad&quot;。</li>
+<li>最终，<code>text.txt</code>的内容为&quot;1234payload&quot;。</li>
+</ol>
+</li>
+</ul>
+<p>根据我们这个例子，很好地解释了文件偏移与<code>read</code>, <code>write</code>的关系。此外，还有一些需要注意的：</p>
+<p>第一，在不使用<code>O_APPEND</code>标志位创建文件的例子中，为什么写入后文件的内容为<code>1234payloadad</code>。在写入前，由于上一轮的修改，文件的内容为&quot;123456payload&quot;。此时文件偏移为4，接下来将从&quot;56...&quot;的位置开始写入。而<code>write</code>如果写入的位置之后还有数据，是直接覆盖的，因此覆盖了7个字节，就变成了&quot;1234payloadad&quot;。这在<a href="https://pubs.opengroup.org/onlinepubs/9699919799/">POSIX标准</a>中有提及：</p>
+<blockquote>
+<p>After a <code>write()</code> to a regular file has successfully returned:</p>
+<ul>
+<li>Any subsequent successful <code>write()</code> to the same byte position in the file shall overwrite that file data.</li>
+</ul>
+</blockquote>
+<p>第二，和<code>read</code>类似，<code>write</code>和<code>pwrite</code>返回的成功写入的字节数，可能会小于传入的参数<code>count</code>。这可能是由多种原因引起，比如说此硬盘分区的容量已满，或者超过了当前文件系统允许的单个文件的最大体积，此时，只能尽可能多地写入字节。比如说此硬盘分区还有2K字节就满了，我们企图写入5K字节，那么只能写入成功2K字节，所以<code>write</code>将返回2K。</p>
+<p>但是，尽管如此，<code>write</code>和<code>pwrite</code>并不能保证在成功返回后，数据一定已经被写入硬盘。在某些情况下，甚至写入的错误也并不一定立刻出现。因此当我们再一次调用文件修改的操作，如<code>write</code>, <code>fsync</code>, <code>close</code>等时，就有可能出现错误。我们可以通过在写入数据后调用<code>fsync</code>，或是在<code>open</code>创建文件时使用<code>O_SYNC</code>或<code>O_DSYNC</code>标志位来解决这一问题。</p>
+<p>虽然不能保证数据一定写入硬盘，POSIX标准同样规定了一件事：</p>
+<blockquote>
+<p>After a <code>write()</code> to a regular file has successfully returned:</p>
+<ul>
+<li>Any successful <code>read()</code> from each byte position in the file that was modified by that write shall return the data specified by the <code>write()</code> for that position until such byte positions are again modified.</li>
+</ul>
+</blockquote>
+<p>也就是说，即使不保证写入硬盘，<code>read</code>读入的数据一定是<code>write</code>成功之后的数据。</p>
+<h3 id="实现"><a class="header" href="#实现">实现</a></h3>
+<p><code>write</code>和<code>pwrite</code>的实现均位于<code>fs/read_write.c</code>中，其核心为<code>__vfs_write</code>函数：</p>
+<pre><code class="language-c">static ssize_t __vfs_write(struct file *file, const char __user *p, size_t count, loff_t *pos)
+{
+	if (file-&gt;f_op-&gt;write)
+		return file-&gt;f_op-&gt;write(file, p, count, pos);
+	else if (file-&gt;f_op-&gt;write_iter)
+		return new_sync_write(file, p, count, pos);
+	else
+		return -EINVAL;
+}
+</code></pre>
+<p>和<code>read</code>与<code>pread</code>类似，<code>write</code>和<code>pwrite</code>将调用文件类型对应的<code>write</code>函数指针，如果不存在，则调用其用于<code>writev</code>, <code>pwritev</code>的<code>write_iter</code>函数指针。</p>
+<p>TODO: 对于常用的EXT4文件系统，找到『当文件描述符创建时使用<code>O_APPEND</code>标志位时，<code>write</code>系统调用会从文件末尾开始写入』这个特性的实现。</p>
+<h2 id="writev-pwritev与pwritev2"><a class="header" href="#writev-pwritev与pwritev2"><code>writev</code>, <code>pwritev</code>与<code>pwritev2</code></a></h2>
+<h3 id="系统调用号-1"><a class="header" href="#系统调用号-1">系统调用号</a></h3>
+<p><code>writev</code>为20，<code>pwritev</code>为296，<code>pwritev2</code>为328。</p>
+<h3 id="函数原型-1"><a class="header" href="#函数原型-1">函数原型</a></h3>
+<h4 id="内核接口-1"><a class="header" href="#内核接口-1">内核接口</a></h4>
+<pre><code class="language-c">asmlinkage long sys_writev(unsigned long fd, const struct iovec __user *vec, unsigned long vlen);
+asmlinkage long sys_pwritev(unsigned long fd, const struct iovec __user *vec, unsigned long vlen, unsigned long pos_l, unsigned long pos_h);
+asmlinkage long sys_pwritev2(unsigned long fd, const struct iovec __user *vec, unsigned long vlen, unsigned long pos_l, unsigned long pos_h, rwf_t flags);
+</code></pre>
+<h4 id="glibc封装-1"><a class="header" href="#glibc封装-1">glibc封装</a></h4>
+<pre><code class="language-c">#include &lt;sys/uio.h&gt;
+ssize_t writev(int fd, const struct iovec *iov, int iovcnt);
+ssize_t pwritev(int fd, const struct iovec *iov, int iovcnt, off_t offset);
+ssize_t pwritev2(int fd, const struct iovec *iov, int iovcnt, off_t offset, int flags);
+</code></pre>
+<h3 id="简介-1"><a class="header" href="#简介-1">简介</a></h3>
+<p>和<code>readv</code>, <code>preadv</code>, <code>preadv2</code>类似，这三个系统调用是为了解决一次性从多个连续内存向一个文件描述符写入的问题，这三个系统调用被称为“聚合写”（gather output）。</p>
+<p>这三个系统调用的特性与<code>readv</code>, <code>preadv</code>, <code>preadv2</code>十分类似，这里不再赘述。</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                        
+                            <a rel="prev" href="../../src/filesystem/read-pread64-readv-preadv-preadv2.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+                        
+
+                        
+                            <a rel="next" href="../../src/filesystem/lseek.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+                        
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                
+                    <a rel="prev" href="../../src/filesystem/read-pread64-readv-preadv-preadv2.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+                
+
+                
+                    <a rel="next" href="../../src/filesystem/lseek.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+                
+            </nav>
+
+        </div>
+
+        
+
+        
+
+        
+
+        
+        <script type="text/javascript">
+            window.playground_copyable = true;
+        </script>
+        
+
+        
+
+        
+        <script src="../../elasticlunr.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="../../mark.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="../../searcher.js" type="text/javascript" charset="utf-8"></script>
+        
+
+        <script src="../../clipboard.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="../../highlight.js" type="text/javascript" charset="utf-8"></script>
+        <script src="../../book.js" type="text/javascript" charset="utf-8"></script>
+
+        <!-- Custom JS scripts -->
+        
+
+        
+
+    </body>
+</html>

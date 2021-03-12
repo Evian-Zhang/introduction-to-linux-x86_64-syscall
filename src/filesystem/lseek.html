@@ -1,0 +1,416 @@
+<!DOCTYPE HTML>
+<html lang="zh-Hans" class="sidebar-visible no-js light">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>lseek - Linux x86_64系统调用简介</title>
+        
+        
+
+
+        <!-- Custom HTML head -->
+        
+
+
+        <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff" />
+
+        
+        <link rel="icon" href="../../favicon.svg">
+        
+        
+        <link rel="shortcut icon" href="../../favicon.png">
+        
+        <link rel="stylesheet" href="../../css/variables.css">
+        <link rel="stylesheet" href="../../css/general.css">
+        <link rel="stylesheet" href="../../css/chrome.css">
+        
+        <link rel="stylesheet" href="../../css/print.css" media="print">
+        
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../../FontAwesome/css/font-awesome.css">
+        
+        <link rel="stylesheet" href="../../fonts/fonts.css">
+        
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="../../highlight.css">
+        <link rel="stylesheet" href="../../tomorrow-night.css">
+        <link rel="stylesheet" href="../../ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+        
+
+        
+    </head>
+    <body>
+        <!-- Provide site root to javascript -->
+        <script type="text/javascript">
+            var path_to_root = "../../";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "light";
+        </script>
+
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script type="text/javascript">
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script type="text/javascript">
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            var html = document.querySelector('html');
+            html.classList.remove('no-js')
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add('js');
+        </script>
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script type="text/javascript">
+            var html = document.querySelector('html');
+            var sidebar = 'hidden';
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            }
+            html.classList.remove('sidebar-visible');
+            html.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <div class="sidebar-scrollbox">
+                <ol class="chapter"><li class="chapter-item expanded affix "><a href="../../index.html">序</a></li><li class="chapter-item expanded affix "><a href="../../src/introduction.html">基础知识</a></li><li class="chapter-item expanded affix "><li class="part-title">文件系统</li><li class="chapter-item expanded "><a href="../../src/filesystem/open-openat-name_to_handle_at-open_by_handle_at-open_tree.html"><strong aria-hidden="true">1.</strong> open, openat, name_to_handle_at, open_by_handle_at, open_tree</a></li><li class="chapter-item expanded "><a href="../../src/filesystem/close.html"><strong aria-hidden="true">2.</strong> close</a></li><li class="chapter-item expanded "><a href="../../src/filesystem/read-pread64-readv-preadv-preadv2.html"><strong aria-hidden="true">3.</strong> read, pread64, readv, preadv, preadv2</a></li><li class="chapter-item expanded "><a href="../../src/filesystem/write-pwrite64-writev-pwritev-pwritev2.html"><strong aria-hidden="true">4.</strong> write, pwrite64, writev, pwritev, pwritev2</a></li><li class="chapter-item expanded "><a href="../../src/filesystem/lseek.html" class="active"><strong aria-hidden="true">5.</strong> lseek</a></li><li class="chapter-item expanded "><a href="../../src/filesystem/poll-select-pselect6-ppoll.html"><strong aria-hidden="true">6.</strong> poll, select, pselect6, ppoll</a></li><li class="chapter-item expanded "><a href="../../src/filesystem/epoll_create-epoll_wait-epoll_ctl-epoll_pwait-epoll_create1.html"><strong aria-hidden="true">7.</strong> epoll_create, epoll_wait, epoll_ctl, epoll_pwait, epoll_create1</a></li><li class="chapter-item expanded "><a href="../../src/filesystem/stat-fstat-lstat-newfstatat-statx.html"><strong aria-hidden="true">8.</strong> stat, fstat, lstat, newfstatat, statx</a></li><li class="chapter-item expanded "><a href="../../src/filesystem/eventfd-eventfd2.html"><strong aria-hidden="true">9.</strong> eventfd, eventfd2</a></li><li class="chapter-item expanded affix "><li class="part-title">内存管理</li><li class="chapter-item expanded "><a href="../../src/memory_management/mmap-munmap-mremap-msync-remap_file_pages.html"><strong aria-hidden="true">10.</strong> mmap, munmap, mremap, msync, remap_file_pages</a></li></ol>
+            </div>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                
+                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky bordered">
+                    <div class="left-buttons">
+                        <button id="sidebar-toggle" class="icon-button" type="button" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </button>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light (default)</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        
+                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                        
+                    </div>
+
+                    <h1 class="menu-title">Linux x86_64系统调用简介</h1>
+
+                    <div class="right-buttons">
+                        
+                        <a href="../../print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+                        
+                        
+                    </div>
+                </div>
+
+                
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" name="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+                
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script type="text/javascript">
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1 id="lseek系统调用"><a class="header" href="#lseek系统调用"><code>lseek</code>系统调用</a></h1>
+<h2 id="系统调用号"><a class="header" href="#系统调用号">系统调用号</a></h2>
+<p>8</p>
+<h2 id="函数签名"><a class="header" href="#函数签名">函数签名</a></h2>
+<h3 id="内核接口"><a class="header" href="#内核接口">内核接口</a></h3>
+<pre><code class="language-c">asmlinkage long sys_lseek(unsigned int fd, off_t offset, unsigned int whence);
+</code></pre>
+<h3 id="glibc封装"><a class="header" href="#glibc封装">glibc封装</a></h3>
+<pre><code class="language-c">#include &lt;sys/types.h&gt;
+#include &lt;unistd.h&gt;
+off_t lseek(int fd, off_t offset, int whence);
+</code></pre>
+<h2 id="简介"><a class="header" href="#简介">简介</a></h2>
+<p>对于支持seek的文件类型，在内核的文件描述中，会有一个“文件偏移”（file offset）。这个的作用是标记后续的<code>read</code>和<code>write</code>的起点。而<code>lseek</code>系统调用的作用就是操作这个文件偏移。</p>
+<p>对于<code>fd</code>对应的文件，<code>lseek</code>的功能根据<code>whence</code>的不同而不同。<code>whence</code>可能的值包括：</p>
+<ul>
+<li>
+<p><code>SEEK_SET</code></p>
+<p>将文件偏移置于<code>offset</code></p>
+</li>
+<li>
+<p><code>SEEK_CUR</code></p>
+<p>将文件偏移置于距当前偏移的<code>offset</code>字节。</p>
+<p><code>offset</code>为正则为当前偏移之后，<code>offset</code>为负则为当前偏移之前</p>
+</li>
+<li>
+<p><code>SEEK_END</code></p>
+<p>将文件偏移置于距文件末尾的<code>offset</code>字节。</p>
+<p><code>offset</code>为负则为文件末尾之前。<code>offset</code>可以为正，表示在文件末尾之后的<code>offset</code>个字节。如果在此处写入，那么使用<code>read</code>读取之前文件末尾至当前偏移，将会得到被<code>\0</code>填充的区域（被称为洞）。</p>
+<p>假设当前文件长度为5字节，我们使用<code>lseek</code>，从第8字节的位置开始写入。然后使用<code>read</code>读取6到7字节的内容，则内容为<code>\0</code>填充的2字节区域。</p>
+</li>
+<li>
+<p><code>SEEK_DATA</code></p>
+<p>将文件偏移置于从<code>offset</code>开始，第一个包含数据的字节。</p>
+<p>如果我们使用<code>SEEK_END</code>制造了洞，且当前文件偏移在洞中，则<code>SEEK_DATA</code>将会将我们的文件偏移移动到之后第一个有数据的区域。</p>
+</li>
+<li>
+<p><code>SEEK_HOLE</code></p>
+<p>将文件偏移置于从<code>offset</code>开始，第一个洞的开始字节。</p>
+<p>如果该文件没有洞，则将置于文件末尾。</p>
+</li>
+</ul>
+<p><code>lseek</code>的返回值为进行修改文件偏移的操作之后，当前的文件偏移。</p>
+<p>我们可以用<a href="https://github.com/Evian-Zhang/introduction-to-linux-x86_64-syscall/tree/master/codes/lseek-hole">这个示例</a>来简单了解一下<code>lseek</code>的功能：</p>
+<pre><code class="language-c">#define _GNU_SOURCE
+#include &lt;unistd.h&gt;
+#include &lt;fcntl.h&gt;
+#include &lt;stdio.h&gt;
+
+int main() {
+    int fd = open(&quot;./text.txt&quot;, O_RDWR);
+    int end_offset = lseek(fd, 0, SEEK_END);
+    lseek(fd, 4, SEEK_END);
+    write(fd, &quot;123&quot;, 3);
+    char buf[4];
+    lseek(fd, end_offset, SEEK_SET);
+    read(fd, buf, 4);
+    for (int i = 0; i &lt; 4; i++) {
+        printf(&quot;%d&quot;, buf[i]);
+    }
+    printf(&quot;\n&quot;);
+
+    int at_hole = lseek(fd, end_offset + 2, SEEK_SET);
+    int next_data = lseek(fd, at_hole, SEEK_DATA);
+    printf(&quot;Current offset %d at hole, move to %d with SEEK_DATA\n&quot;, at_hole, next_data);
+
+    int at_data = lseek(fd, end_offset - 2, SEEK_SET);
+    int next_hole = lseek(fd, at_data, SEEK_HOLE);
+    printf(&quot;Current offset %d at data, move to %d with SEEK_HOLE\n&quot;, at_data, next_hole);
+
+    return 0;
+}
+</code></pre>
+<p>其中<code>text.txt</code>的内容长度为6字节。</p>
+<p>因此，我们的步骤是</p>
+<ol>
+<li>将文件偏移移动到末尾之后4字节，当前文件偏移为10</li>
+<li>写入数据</li>
+<li>将文件偏移移动到6</li>
+<li>读入4字节数据。这4字节由于在“洞“中，所以均为0</li>
+<li>将文件偏移移动到8</li>
+<li>使用<code>SEEK_DATA</code>找到下一个有数据的区域，文件偏移为10</li>
+<li>将文件偏移移动到4</li>
+<li>使用<code>SEEK_HOLE</code>找到下一个洞的区域，文件偏移为6</li>
+</ol>
+<p>但是，由于不同的文件系统对<code>SEEK_DATA</code>和<code>SEEK_HOLE</code>的支持不同，上述行为在不同文件系统下可能会不同。最简单的实现就是，<code>SEEK_DATA</code>不改变文件偏移，<code>SEEK_HOLE</code>移动到文件末尾，也就是把“洞”也看作正常的数据。</p>
+<h2 id="实现"><a class="header" href="#实现">实现</a></h2>
+<p><code>lseek</code>的实现位于<code>fs/read_write.c</code>，其最终调用的是<code>vfs_llseek</code>：</p>
+<pre><code class="language-c">loff_t vfs_llseek(struct file *file, loff_t offset, int whence)
+{
+	loff_t (*fn)(struct file *, loff_t, int);
+
+	fn = no_llseek;
+	if (file-&gt;f_mode &amp; FMODE_LSEEK) {
+		if (file-&gt;f_op-&gt;llseek)
+			fn = file-&gt;f_op-&gt;llseek;
+	}
+	return fn(file, offset, whence);
+}
+</code></pre>
+<p>而我们来看看比较常见的EXT4文件系统的实现，其位于<code>fs/ext4/file.c</code>:</p>
+<pre><code class="language-c">loff_t ext4_llseek(struct file *file, loff_t offset, int whence)
+{
+	struct inode *inode = file-&gt;f_mapping-&gt;host;
+	loff_t maxbytes;
+
+	if (!(ext4_test_inode_flag(inode, EXT4_INODE_EXTENTS)))
+		maxbytes = EXT4_SB(inode-&gt;i_sb)-&gt;s_bitmap_maxbytes;
+	else
+		maxbytes = inode-&gt;i_sb-&gt;s_maxbytes;
+
+	switch (whence) {
+	default:
+		return generic_file_llseek_size(file, offset, whence,
+						maxbytes, i_size_read(inode));
+	case SEEK_HOLE:
+		inode_lock_shared(inode);
+		offset = iomap_seek_hole(inode, offset, &amp;ext4_iomap_ops);
+		inode_unlock_shared(inode);
+		break;
+	case SEEK_DATA:
+		inode_lock_shared(inode);
+		offset = iomap_seek_data(inode, offset, &amp;ext4_iomap_ops);
+		inode_unlock_shared(inode);
+		break;
+	}
+
+	if (offset &lt; 0)
+		return offset;
+	return vfs_setpos(file, offset, maxbytes);
+}
+</code></pre>
+<p>对于<code>SEEK_HOLE</code>和<code>SEEK_DATA</code>，EXT4特殊考虑了，实现了正确的行为。对于一般的操作，则是使用<code>fs/read_write</code>里的<code>generic_file_llseek_size</code>函数：</p>
+<pre><code class="language-c">loff_t
+generic_file_llseek_size(struct file *file, loff_t offset, int whence,
+		loff_t maxsize, loff_t eof)
+{
+	switch (whence) {
+	case SEEK_END:
+		offset += eof;
+		break;
+	case SEEK_CUR:
+		/*
+		 * Here we special-case the lseek(fd, 0, SEEK_CUR)
+		 * position-querying operation.  Avoid rewriting the &quot;same&quot;
+		 * f_pos value back to the file because a concurrent read(),
+		 * write() or lseek() might have altered it
+		 */
+		if (offset == 0)
+			return file-&gt;f_pos;
+		/*
+		 * f_lock protects against read/modify/write race with other
+		 * SEEK_CURs. Note that parallel writes and reads behave
+		 * like SEEK_SET.
+		 */
+		spin_lock(&amp;file-&gt;f_lock);
+		offset = vfs_setpos(file, file-&gt;f_pos + offset, maxsize);
+		spin_unlock(&amp;file-&gt;f_lock);
+		return offset;
+	case SEEK_DATA:
+		/*
+		 * In the generic case the entire file is data, so as long as
+		 * offset isn't at the end of the file then the offset is data.
+		 */
+		if ((unsigned long long)offset &gt;= eof)
+			return -ENXIO;
+		break;
+	case SEEK_HOLE:
+		/*
+		 * There is a virtual hole at the end of the file, so as long as
+		 * offset isn't i_size or larger, return i_size.
+		 */
+		if ((unsigned long long)offset &gt;= eof)
+			return -ENXIO;
+		offset = eof;
+		break;
+	}
+
+	return vfs_setpos(file, offset, maxsize);
+}
+</code></pre>
+<p>这是默认实现的行为，对于<code>SEEK_SET</code>, <code>SEEK_CUR</code>和<code>SEEK_END</code>，清楚地实现了它们的功能；对于<code>SEEK_DATA</code>，则默认不改变文件偏移，<code>SEEK_HOLE</code>则会移动到文件末尾。</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                        
+                            <a rel="prev" href="../../src/filesystem/write-pwrite64-writev-pwritev-pwritev2.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+                        
+
+                        
+                            <a rel="next" href="../../src/filesystem/poll-select-pselect6-ppoll.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+                        
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                
+                    <a rel="prev" href="../../src/filesystem/write-pwrite64-writev-pwritev-pwritev2.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+                
+
+                
+                    <a rel="next" href="../../src/filesystem/poll-select-pselect6-ppoll.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+                
+            </nav>
+
+        </div>
+
+        
+
+        
+
+        
+
+        
+        <script type="text/javascript">
+            window.playground_copyable = true;
+        </script>
+        
+
+        
+
+        
+        <script src="../../elasticlunr.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="../../mark.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="../../searcher.js" type="text/javascript" charset="utf-8"></script>
+        
+
+        <script src="../../clipboard.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="../../highlight.js" type="text/javascript" charset="utf-8"></script>
+        <script src="../../book.js" type="text/javascript" charset="utf-8"></script>
+
+        <!-- Custom JS scripts -->
+        
+
+        
+
+    </body>
+</html>

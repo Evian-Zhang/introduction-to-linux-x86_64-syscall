@@ -1,0 +1,323 @@
+<!DOCTYPE HTML>
+<html lang="zh-Hans" class="sidebar-visible no-js light">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>close - Linux x86_64系统调用简介</title>
+        
+        
+
+
+        <!-- Custom HTML head -->
+        
+
+
+        <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff" />
+
+        
+        <link rel="icon" href="../../favicon.svg">
+        
+        
+        <link rel="shortcut icon" href="../../favicon.png">
+        
+        <link rel="stylesheet" href="../../css/variables.css">
+        <link rel="stylesheet" href="../../css/general.css">
+        <link rel="stylesheet" href="../../css/chrome.css">
+        
+        <link rel="stylesheet" href="../../css/print.css" media="print">
+        
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../../FontAwesome/css/font-awesome.css">
+        
+        <link rel="stylesheet" href="../../fonts/fonts.css">
+        
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="../../highlight.css">
+        <link rel="stylesheet" href="../../tomorrow-night.css">
+        <link rel="stylesheet" href="../../ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+        
+
+        
+    </head>
+    <body>
+        <!-- Provide site root to javascript -->
+        <script type="text/javascript">
+            var path_to_root = "../../";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "light";
+        </script>
+
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script type="text/javascript">
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script type="text/javascript">
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            var html = document.querySelector('html');
+            html.classList.remove('no-js')
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add('js');
+        </script>
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script type="text/javascript">
+            var html = document.querySelector('html');
+            var sidebar = 'hidden';
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            }
+            html.classList.remove('sidebar-visible');
+            html.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <div class="sidebar-scrollbox">
+                <ol class="chapter"><li class="chapter-item expanded affix "><a href="../../index.html">序</a></li><li class="chapter-item expanded affix "><a href="../../src/introduction.html">基础知识</a></li><li class="chapter-item expanded affix "><li class="part-title">文件系统</li><li class="chapter-item expanded "><a href="../../src/filesystem/open-openat-name_to_handle_at-open_by_handle_at-open_tree.html"><strong aria-hidden="true">1.</strong> open, openat, name_to_handle_at, open_by_handle_at, open_tree</a></li><li class="chapter-item expanded "><a href="../../src/filesystem/close.html" class="active"><strong aria-hidden="true">2.</strong> close</a></li><li class="chapter-item expanded "><a href="../../src/filesystem/read-pread64-readv-preadv-preadv2.html"><strong aria-hidden="true">3.</strong> read, pread64, readv, preadv, preadv2</a></li><li class="chapter-item expanded "><a href="../../src/filesystem/write-pwrite64-writev-pwritev-pwritev2.html"><strong aria-hidden="true">4.</strong> write, pwrite64, writev, pwritev, pwritev2</a></li><li class="chapter-item expanded "><a href="../../src/filesystem/lseek.html"><strong aria-hidden="true">5.</strong> lseek</a></li><li class="chapter-item expanded "><a href="../../src/filesystem/poll-select-pselect6-ppoll.html"><strong aria-hidden="true">6.</strong> poll, select, pselect6, ppoll</a></li><li class="chapter-item expanded "><a href="../../src/filesystem/epoll_create-epoll_wait-epoll_ctl-epoll_pwait-epoll_create1.html"><strong aria-hidden="true">7.</strong> epoll_create, epoll_wait, epoll_ctl, epoll_pwait, epoll_create1</a></li><li class="chapter-item expanded "><a href="../../src/filesystem/stat-fstat-lstat-newfstatat-statx.html"><strong aria-hidden="true">8.</strong> stat, fstat, lstat, newfstatat, statx</a></li><li class="chapter-item expanded "><a href="../../src/filesystem/eventfd-eventfd2.html"><strong aria-hidden="true">9.</strong> eventfd, eventfd2</a></li><li class="chapter-item expanded affix "><li class="part-title">内存管理</li><li class="chapter-item expanded "><a href="../../src/memory_management/mmap-munmap-mremap-msync-remap_file_pages.html"><strong aria-hidden="true">10.</strong> mmap, munmap, mremap, msync, remap_file_pages</a></li></ol>
+            </div>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                
+                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky bordered">
+                    <div class="left-buttons">
+                        <button id="sidebar-toggle" class="icon-button" type="button" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </button>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light (default)</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        
+                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                        
+                    </div>
+
+                    <h1 class="menu-title">Linux x86_64系统调用简介</h1>
+
+                    <div class="right-buttons">
+                        
+                        <a href="../../print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+                        
+                        
+                    </div>
+                </div>
+
+                
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" name="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+                
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script type="text/javascript">
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1 id="close系统调用"><a class="header" href="#close系统调用"><code>close</code>系统调用</a></h1>
+<h2 id="系统调用号"><a class="header" href="#系统调用号">系统调用号</a></h2>
+<p>3</p>
+<h2 id="函数签名"><a class="header" href="#函数签名">函数签名</a></h2>
+<h3 id="内核接口"><a class="header" href="#内核接口">内核接口</a></h3>
+<pre><code class="language-c">asmlinkage long sys_close(unsigned int fd);
+</code></pre>
+<h3 id="glibc封装"><a class="header" href="#glibc封装">glibc封装</a></h3>
+<pre><code class="language-c">#include &lt;unistd.h&gt;
+int close(int fd);
+</code></pre>
+<h2 id="简介"><a class="header" href="#简介">简介</a></h2>
+<p><code>close</code>系统调用的作用是关闭一个文件描述符，使得其不再指向任何文件，同时该文件描述符也可供后续<code>open</code>等操作复用。</p>
+<p><code>close</code>系统调用在我们日常的文件操作中随处可见，功能也相对比较简单。但是，有几点需要注意：</p>
+<p>首先，如果我们在<code>open</code>状态下删除（<code>unlink</code>）了某个文件，那对这个文件描述符的<code>close</code>操作的行为，则需要判断该文件被多少个文件描述符所引用。假设<code>close</code>的文件描述符是最后一个引用该文件的描述符，则<code>close</code>操作之后，该文件将被真正意义上的删除。</p>
+<p>第二，<code>close</code>并不能确保我们在之前对文件写入的数据一定会写入到硬盘中。正如我们在<a href="./write-pwrite-writev-pwritev-pwritev2.html"><code>write</code></a>中提到的，如果要确保在<code>close</code>之前数据写入到硬盘，就使用<code>fsync</code>。</p>
+<p>第三，<code>close</code>如果失败，则返回-1，并且设置相应的<code>errno</code>。<code>close</code>可能失败的原因比较重要，主要包括：</p>
+<ul>
+<li><code>EBADF</code>: <code>fd</code>不是一个有效的，处于打开状态的文件描述符</li>
+<li><code>EINTR</code>: <code>close</code>操作被信号中断</li>
+<li><code>EIO</code>: IO失败</li>
+</ul>
+<p>虽然<code>close</code>失败后的行为和别的系统调用类似，但比较特殊的是，一般情况下，这种失败只能起到一种“告知”作用，我们不能再次使用<code>close</code>。这是因为在<code>close</code>的实现中，真正实施关闭文件的操作在整个过程的很前面，一般在文件真正关闭之前是不会产生错误的。因此，尽管<code>close</code>出错，但<strong>有可能</strong>这个文件描述符已经被关闭了。此时，再次调用<code>close</code>，如果该文件描述符没有被再次使用，则由于已经被关闭，所以会返回<code>EBADF</code>错误；否则，如果在再次调用<code>close</code>之前，该文件描述符被别的线程复用了，那就会不小心关闭了别的线程的有意义的文件描述符。</p>
+<h2 id="实现"><a class="header" href="#实现">实现</a></h2>
+<p><code>close</code>的实现位于<code>fs/open.c</code>中：</p>
+<pre><code class="language-c">SYSCALL_DEFINE1(close, unsigned int, fd)
+{
+	int retval = __close_fd(current-&gt;files, fd);
+
+	/* can't restart close syscall because file table entry was cleared */
+	if (unlikely(retval == -ERESTARTSYS ||
+		     retval == -ERESTARTNOINTR ||
+		     retval == -ERESTARTNOHAND ||
+		     retval == -ERESTART_RESTARTBLOCK))
+		retval = -EINTR;
+
+	return retval;
+}
+</code></pre>
+<p>可见其核心为位于<code>fs/file.c</code>的<code>__close_fd</code>函数:</p>
+<pre><code class="language-c">int __close_fd(struct files_struct *files, unsigned fd)
+{
+	struct file *file;
+	struct fdtable *fdt;
+
+	spin_lock(&amp;files-&gt;file_lock);
+	fdt = files_fdtable(files);
+	if (fd &gt;= fdt-&gt;max_fds)
+		goto out_unlock;
+	file = fdt-&gt;fd[fd];
+	if (!file)
+		goto out_unlock;
+	rcu_assign_pointer(fdt-&gt;fd[fd], NULL);
+	__put_unused_fd(files, fd);
+	spin_unlock(&amp;files-&gt;file_lock);
+	return filp_close(file, files);
+
+out_unlock:
+	spin_unlock(&amp;files-&gt;file_lock);
+	return -EBADF;
+}
+</code></pre>
+<p>从第13行可以看到，最先进行的实际操作是在该进程的文件描述符列表删除该描述符，然后在第16行使用位于<code>fs/open.c</code>的<code>filp_close</code>函数对文件描述符对应的文件做扫尾工作：</p>
+<pre><code class="language-c">int filp_close(struct file *filp, fl_owner_t id)
+{
+	int retval = 0;
+
+	if (!file_count(filp)) {
+		printk(KERN_ERR &quot;VFS: Close: file count is 0\n&quot;);
+		return 0;
+	}
+
+	if (filp-&gt;f_op-&gt;flush)
+		retval = filp-&gt;f_op-&gt;flush(filp, id);
+
+	if (likely(!(filp-&gt;f_mode &amp; FMODE_PATH))) {
+		dnotify_flush(filp, id);
+		locks_remove_posix(filp, id);
+	}
+	fput(filp);
+	return retval;
+}
+</code></pre>
+<p>其核心也就是第11行的<code>filp-&gt;f_op-&gt;flush</code>，也就是如果文件系统有相应的<code>flush</code>操作，则对文件进行<code>flush</code>。在<code>fs/ext4/file.c</code>的512行就可以看到，我们在Linux中常用的EXT4系统，并没有定义相应的操作。也就是说，这里实际上也没做什么事。</p>
+<p>从这个实现中我们可以验证两件事：</p>
+<ul>
+<li>在<code>close</code>整个过程的早期，文件描述符就已经失效了，不再表示一个有效的打开状态的文件描述符，且在其完成之前基本上不会产生失败。</li>
+<li>如果我们<code>flush</code>的操作失败了，是没有机会再次进行<code>flush</code>的，因为文件描述符先前已经失效了。</li>
+</ul>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                        
+                            <a rel="prev" href="../../src/filesystem/open-openat-name_to_handle_at-open_by_handle_at-open_tree.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+                        
+
+                        
+                            <a rel="next" href="../../src/filesystem/read-pread64-readv-preadv-preadv2.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+                        
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                
+                    <a rel="prev" href="../../src/filesystem/open-openat-name_to_handle_at-open_by_handle_at-open_tree.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+                
+
+                
+                    <a rel="next" href="../../src/filesystem/read-pread64-readv-preadv-preadv2.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+                
+            </nav>
+
+        </div>
+
+        
+
+        
+
+        
+
+        
+        <script type="text/javascript">
+            window.playground_copyable = true;
+        </script>
+        
+
+        
+
+        
+        <script src="../../elasticlunr.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="../../mark.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="../../searcher.js" type="text/javascript" charset="utf-8"></script>
+        
+
+        <script src="../../clipboard.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="../../highlight.js" type="text/javascript" charset="utf-8"></script>
+        <script src="../../book.js" type="text/javascript" charset="utf-8"></script>
+
+        <!-- Custom JS scripts -->
+        
+
+        
+
+    </body>
+</html>

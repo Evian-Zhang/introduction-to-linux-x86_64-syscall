@@ -1,0 +1,676 @@
+<!DOCTYPE HTML>
+<html lang="zh-Hans" class="sidebar-visible no-js light">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>open, openat, name_to_handle_at, open_by_handle_at, open_tree - Linux x86_64系统调用简介</title>
+        
+        
+
+
+        <!-- Custom HTML head -->
+        
+
+
+        <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff" />
+
+        
+        <link rel="icon" href="../../favicon.svg">
+        
+        
+        <link rel="shortcut icon" href="../../favicon.png">
+        
+        <link rel="stylesheet" href="../../css/variables.css">
+        <link rel="stylesheet" href="../../css/general.css">
+        <link rel="stylesheet" href="../../css/chrome.css">
+        
+        <link rel="stylesheet" href="../../css/print.css" media="print">
+        
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../../FontAwesome/css/font-awesome.css">
+        
+        <link rel="stylesheet" href="../../fonts/fonts.css">
+        
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="../../highlight.css">
+        <link rel="stylesheet" href="../../tomorrow-night.css">
+        <link rel="stylesheet" href="../../ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+        
+
+        
+    </head>
+    <body>
+        <!-- Provide site root to javascript -->
+        <script type="text/javascript">
+            var path_to_root = "../../";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "light";
+        </script>
+
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script type="text/javascript">
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script type="text/javascript">
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            var html = document.querySelector('html');
+            html.classList.remove('no-js')
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add('js');
+        </script>
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script type="text/javascript">
+            var html = document.querySelector('html');
+            var sidebar = 'hidden';
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            }
+            html.classList.remove('sidebar-visible');
+            html.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <div class="sidebar-scrollbox">
+                <ol class="chapter"><li class="chapter-item expanded affix "><a href="../../index.html">序</a></li><li class="chapter-item expanded affix "><a href="../../src/introduction.html">基础知识</a></li><li class="chapter-item expanded affix "><li class="part-title">文件系统</li><li class="chapter-item expanded "><a href="../../src/filesystem/open-openat-name_to_handle_at-open_by_handle_at-open_tree.html" class="active"><strong aria-hidden="true">1.</strong> open, openat, name_to_handle_at, open_by_handle_at, open_tree</a></li><li class="chapter-item expanded "><a href="../../src/filesystem/close.html"><strong aria-hidden="true">2.</strong> close</a></li><li class="chapter-item expanded "><a href="../../src/filesystem/read-pread64-readv-preadv-preadv2.html"><strong aria-hidden="true">3.</strong> read, pread64, readv, preadv, preadv2</a></li><li class="chapter-item expanded "><a href="../../src/filesystem/write-pwrite64-writev-pwritev-pwritev2.html"><strong aria-hidden="true">4.</strong> write, pwrite64, writev, pwritev, pwritev2</a></li><li class="chapter-item expanded "><a href="../../src/filesystem/lseek.html"><strong aria-hidden="true">5.</strong> lseek</a></li><li class="chapter-item expanded "><a href="../../src/filesystem/poll-select-pselect6-ppoll.html"><strong aria-hidden="true">6.</strong> poll, select, pselect6, ppoll</a></li><li class="chapter-item expanded "><a href="../../src/filesystem/epoll_create-epoll_wait-epoll_ctl-epoll_pwait-epoll_create1.html"><strong aria-hidden="true">7.</strong> epoll_create, epoll_wait, epoll_ctl, epoll_pwait, epoll_create1</a></li><li class="chapter-item expanded "><a href="../../src/filesystem/stat-fstat-lstat-newfstatat-statx.html"><strong aria-hidden="true">8.</strong> stat, fstat, lstat, newfstatat, statx</a></li><li class="chapter-item expanded "><a href="../../src/filesystem/eventfd-eventfd2.html"><strong aria-hidden="true">9.</strong> eventfd, eventfd2</a></li><li class="chapter-item expanded affix "><li class="part-title">内存管理</li><li class="chapter-item expanded "><a href="../../src/memory_management/mmap-munmap-mremap-msync-remap_file_pages.html"><strong aria-hidden="true">10.</strong> mmap, munmap, mremap, msync, remap_file_pages</a></li></ol>
+            </div>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                
+                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky bordered">
+                    <div class="left-buttons">
+                        <button id="sidebar-toggle" class="icon-button" type="button" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </button>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light (default)</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        
+                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                        
+                    </div>
+
+                    <h1 class="menu-title">Linux x86_64系统调用简介</h1>
+
+                    <div class="right-buttons">
+                        
+                        <a href="../../print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+                        
+                        
+                    </div>
+                </div>
+
+                
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" name="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+                
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script type="text/javascript">
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1 id="open-openat-name_to_handle_at-open_by_handle_at-open_tree系统调用"><a class="header" href="#open-openat-name_to_handle_at-open_by_handle_at-open_tree系统调用"><code>open</code>, <code>openat</code>, <code>name_to_handle_at</code>, <code>open_by_handle_at</code>, <code>open_tree</code>系统调用</a></h1>
+<h2 id="open与openat"><a class="header" href="#open与openat"><code>open</code>与<code>openat</code></a></h2>
+<h3 id="系统调用号"><a class="header" href="#系统调用号">系统调用号</a></h3>
+<p><code>open</code>为2，<code>openat</code>为257。</p>
+<h3 id="函数原型"><a class="header" href="#函数原型">函数原型</a></h3>
+<h4 id="内核接口"><a class="header" href="#内核接口">内核接口</a></h4>
+<pre><code class="language-c">asmlinkage long sys_open(const char __user *filename, int flags, umode_t mode);
+asmlinkage long sys_openat(int dfd, const char __user *filename, int flags, umode_t mode);
+</code></pre>
+<h4 id="glibc封装"><a class="header" href="#glibc封装">glibc封装</a></h4>
+<pre><code class="language-c">#include &lt;sys/types.h&gt;
+#include &lt;sys/stat.h&gt;
+#include &lt;fcntl.h&gt;
+int open(const char *pathname, int flags);
+int open(const char *pathname, int flags, mode_t mode);
+int openat(int dirfd, const char *pathname, int flags);
+int openat(int dirfd, const char *pathname, int flags, mode_t mode);
+</code></pre>
+<h3 id="简介"><a class="header" href="#简介">简介</a></h3>
+<p>我们知道，绝大多数文件相关的系统调用都是直接操作文件描述符（file descriptor），而<code>open</code>和<code>openat</code>这两个系统调用是一种创建文件描述符的方式。<code>open</code>系统调用将打开路径为<code>filename</code>的文件，而<code>openat</code>则将打开相对描述符为<code>dirfd</code>的目录，路径为<code>filename</code>的文件。</p>
+<p>详细来说，<code>open</code>和<code>openat</code>的行为是</p>
+<ul>
+<li><code>filename</code>是绝对路径
+<ul>
+<li><code>open</code>打开位于<code>filename</code>的文件</li>
+<li><code>openat</code>打开位于<code>filename</code>的文件，忽略<code>dirfd</code></li>
+</ul>
+</li>
+<li><code>filename</code>是相对路径
+<ul>
+<li><code>open</code>打开相对于当前目录，路径为<code>filename</code>的文件</li>
+<li><code>openat</code>打开相对于<code>dirfd</code>对应的目录，路径为<code>filename</code>的文件；若<code>dirfd</code>是定义在<code>fcntl.h</code>中的宏<code>AT_FDCWD</code>，则打开相对于当前目录，路径为<code>filename</code>的文件。</li>
+</ul>
+</li>
+</ul>
+<p>接着，是“怎么打开”的问题。<code>open</code>和<code>openat</code>的参数<code>flags</code>, <code>mode</code>控制了打开文件的行为（<code>mode</code>详情请见<code>creat</code>系统调用。TODO：增加超链接）。</p>
+<h4 id="flags"><a class="header" href="#flags">flags</a></h4>
+<p>用于打开文件的标志均定义在<code>fcntl.h</code>头文件中。</p>
+<h5 id="文件访问模式标志file-access-mode-flag"><a class="header" href="#文件访问模式标志file-access-mode-flag">文件访问模式标志（file access mode flag）</a></h5>
+<ul>
+<li>
+<p><code>O_RDONLY</code></p>
+<p>以只读方式打开。创建的文件描述符不可写。</p>
+</li>
+<li>
+<p><code>O_WDONLY</code></p>
+<p>以只写方式打开。创建的文件描述符不可读。</p>
+</li>
+<li>
+<p><code>O_RDWR</code></p>
+<p>以读写方式打开。创建的文件描述符既可读也可写。</p>
+</li>
+<li>
+<p><code>O_EXEC</code></p>
+<p>以只执行方式打开。创建的文件描述符只可以被执行。只能用于非目录路径。</p>
+</li>
+<li>
+<p><code>O_SEARCH</code></p>
+<p>以只搜索方式打开。创建的文件描述符值可以被用于搜索。只能用于目录路径。</p>
+</li>
+</ul>
+<p>POSIX标准要求在打开文件时，必须且只能使用上述标志位中的一个。而glibc的封装则要求在打开文件时，必须且只能使用前三个标志位（只读、只写、读写）中的一个。</p>
+<h5 id="文件创建标志file-creation-flag"><a class="header" href="#文件创建标志file-creation-flag">文件创建标志（file creation flag）</a></h5>
+<p>文件创建标志控制的是<code>open</code>和<code>openat</code>在打开文件时的行为。部分比较常见的标志位有：</p>
+<ul>
+<li><code>O_CLOEXEC</code>
+<ul>
+<li>
+<p>文件描述符将在调用<code>exec</code>函数族时关闭。</p>
+</li>
+<li>
+<p>我们知道，当一个Linux进程使用<code>fork</code>创建子进程后，父进程原有的文件描述符也会复制给子进程。而常见的模式是在<code>fork</code>之后使用<code>exec</code>函数族替换当前进程空间。此时，由于替换前的所有变量都不会被继承，所以文件描述符将丢失，而丢失之后就无法关闭相应的文件描述符，造成泄露。如<a href="https://github.com/Evian-Zhang/introduction-to-linux-x86_64-syscall/tree/master/codes/open-cloexec">以下代码</a>：</p>
+<pre><code class="language-c">#include &lt;fcntl.h&gt;
+#include &lt;unistd.h&gt;
+
+int main() {
+    int fd = open(&quot;./text.txt&quot;, O_RDONLY);
+    if (fork() == 0) {
+        // child process
+        char *const argv[] = {&quot;./child&quot;, NULL};
+        execve(&quot;./child&quot;, argv, NULL); // fd left opened
+    } else {
+        // parent process
+        sleep(30);
+    }
+
+    return 0;
+}
+</code></pre>
+<p>其中<code>./child</code>在启动30秒后会自动退出。</p>
+<p>在启动这个程序之后，我们使用<code>ps -aux | grep child</code>找到<code>child</code>对应的进程ID，然后使用</p>
+<pre><code class="language-shell">readlink /proc/xxx/fd/yyy
+</code></pre>
+<p>查看，其中<code>xxx</code>为进程ID，<code>yyy</code>是<code>fd</code>中的任意一个文件。我们调查<code>fd</code>中的所有文件，一定能发现一个文件描述符对应<code>text.txt</code>。也就是说，在执行<code>execve</code>之后，子进程始终保持着<code>text.txt</code>的描述符，且没有任何方法关闭它。</p>
+</li>
+<li>
+<p>解决这个问题的方法一般有两种：</p>
+<ul>
+<li>在<code>fork</code>之后，<code>execve</code>之前使用<code>close</code>关闭所有文件描述符。但是如果该进程在此之前创建了许多文件描述符，在这里就很容易漏掉，也不易于维护。</li>
+<li>在使用<code>open</code>创建文件描述符时，加入<code>O_CLOEXEC</code>标志位：
+<pre><code class="language-c">int fd = open(&quot;./text.txt&quot;, O_RDONLY | O_CLOEXEC);
+</code></pre>
+通过这种方法，在子进程使用<code>execve</code>时，文件描述符会自动关闭。</li>
+</ul>
+</li>
+</ul>
+</li>
+<li><code>O_CREAT</code>
+<ul>
+<li>当<code>filename</code>路径不存在时，创建相应的文件。</li>
+<li>使用此标志时，<code>mode</code>参数将作为创建的文件的文件模式标志位。详情请见<code>creat</code>系统调用。TODO: 增加超链接</li>
+</ul>
+</li>
+<li><code>O_EXCL</code>
+<ul>
+<li>该标志位一般会与<code>O_CREAT</code>搭配使用。</li>
+<li>如果<code>filename</code>路径存在相应的文件（包括符号链接），则<code>open</code>会失败。</li>
+</ul>
+</li>
+<li><code>O_DIRECTORY</code>
+<ul>
+<li>如果<code>filename</code>路径不是一个目录，则失败。</li>
+<li>这个标志位是用来替代<code>opendir</code>函数的。TODO: 解释其受拒绝服务攻击的原理。</li>
+</ul>
+</li>
+<li><code>O_TRUNC</code>
+<ul>
+<li>如果<code>filename</code>路径存在相应的文件，且以写的方式打开（即<code>O_WDONLY</code>或<code>O_RDWR</code>），那么将文件内容清空。</li>
+</ul>
+</li>
+</ul>
+<h5 id="文件状态标志file-status-flag"><a class="header" href="#文件状态标志file-status-flag">文件状态标志（file status flag）</a></h5>
+<p>文件状态标志控制的是打开文件后的后续IO操作。</p>
+<ul>
+<li>
+<p><code>O_APPEND</code></p>
+<ul>
+<li>使用此标志位时，在后续每一次<code>write</code>操作前，会将文件偏移移至文件末尾。（详情请见<a href="./write-pwrite64-writev-pwritev-pwritev2.html">write</a>）。</li>
+</ul>
+</li>
+<li>
+<p><code>O_ASYNC</code></p>
+<ul>
+<li>使用信号驱动的IO。后续的IO操作将立即返回，同时在IO操作完成时发出相应的信号。</li>
+<li>这种方式在异步IO模式中较少使用，主要由于这种基于中断的信号处理机制比系统调用的耗费更大，并且无法处理多个文件描述符同时完成IO操作。参考<a href="https://stackoverflow.com/a/6260132/10005095">What's the difference between async and nonblocking in unix socket?</a>。</li>
+<li>对正常文件的描述符无效，对套接字等文件描述符有效。</li>
+</ul>
+</li>
+<li>
+<p><code>O_NONBLOCK</code></p>
+<ul>
+<li>
+<p>后续的IO操作立即返回，而不是等IO操作完成后返回。</p>
+</li>
+<li>
+<p>对正常文件的描述符无效，对套接字等文件描述符有效。</p>
+</li>
+<li>
+<p>对于以此种方式打开的文件，后续的<code>read</code>和<code>write</code>操作可能会产生特殊的错误——<code>EAGAIN</code>（对于套接字文件还可能产生<code>EWOULDBLOCK</code>）。</p>
+<p>这种错误的含义是接下来的读取或写入会阻塞，常见的原因可能是已经读取完毕了，或者写满了。比如说，当客户端发送的数据被服务器端全部读取之后，再次对以非阻塞形式打开的套接字文件进行<code>read</code>操作，就会返回<code>EAGAIN</code>或<code>EWOULDBLOCK</code>错误。</p>
+</li>
+</ul>
+</li>
+<li>
+<p><code>O_SYNC</code>与<code>O_DSYNC</code></p>
+<ul>
+<li>使用<code>O_SYNC</code>时，每一次<code>write</code>操作结束前，都会将文件内容和元信息写入相应的硬件。</li>
+<li>使用<code>O_DSYNC</code>时，每一次<code>write</code>操作结束前，都会将文件内容写入相应的硬件（不保证元信息）。</li>
+<li>这两种方法可以看作是在每一次<code>write</code>操作后使用<code>fsync</code>。</li>
+</ul>
+</li>
+<li>
+<p><code>O_PATH</code></p>
+<ul>
+<li>仅以文件描述符层次打开相应的文件。</li>
+<li>我们使用<code>open</code>和<code>openat</code>打开文件通常有两个目的：一是在文件系统中找到相应的文件，二是打开文件对其内容进行查看或修改。如果传入<code>O_PATH</code>标志位，则只执行第一个目的，不仅耗费更低，同时所需要的权限也更少。</li>
+<li>通过<code>O_PATH</code>打开的文件描述符可以传递给<code>close</code>, <code>fchdir</code>, <code>fstat</code>等只在文件层面进行的操作，而不能传递给<code>read</code>, <code>write</code>等需要对文件内容进行查看或修改的操作。</li>
+</ul>
+</li>
+</ul>
+<h4 id="其他注意点"><a class="header" href="#其他注意点">其他注意点</a></h4>
+<p>此外，还有一些需要注意的。</p>
+<p>在新的Linux内核（版本不低于2.26）中，glibc的封装<code>open</code>底层调用的是<code>openat</code>系统调用而不是<code>open</code>系统调用（<code>dirfd</code>为<code>AT_FDCWD</code>）。我们可以在glibc源码的<code>sysdeps/unix/sysv/linux/open.c</code>中看到：</p>
+<pre><code class="language-c">int
+__libc_open (const char *file, int oflag, ...)
+{
+  int mode = 0;
+
+  if (__OPEN_NEEDS_MODE (oflag))
+    {
+      va_list arg;
+      va_start (arg, oflag);
+      mode = va_arg (arg, int);
+      va_end (arg);
+    }
+
+  return SYSCALL_CANCEL (openat, AT_FDCWD, file, oflag, mode);
+}
+</code></pre>
+<p><code>open</code>的glibc封装实际上就是系统调用<code>openat(AT_FDCWD, file, oflag, mode)</code>。</p>
+<p><code>open</code>和<code>openat</code>返回的是文件描述符（file descriptor），在Linux内核中，还有一个概念为文件描述（file description）。操作系统会维护一张全局的表，记录所有打开的文件的信息，如文件偏移、打开文件的状态标志等。这张全局的表的表项即为文件描述。而文件描述符则是对文件描述的引用。</p>
+<p>每一次成功调用<code>open</code>和<code>openat</code>，都会在文件描述表中创建一个新的表项，返回的文件描述符即是对该表项的引用。而我们常见的<code>dup</code>, <code>fork</code>等复制的文件描述符，则会指向同一个文件描述。</p>
+<p>文件描述创建之后，不会随着文件路径的修改而修改。也就是说，当我们通过<code>open</code>打开了某个特定路径下的文件，然后我们将该文件移动到别的路径上，我们后续的<code>read</code>, <code>write</code>等操作仍能成功。</p>
+<h3 id="用法"><a class="header" href="#用法">用法</a></h3>
+<p>我们在使用<code>open</code>和<code>openat</code>时，可以有如下的思考顺序：</p>
+<ol>
+<li>打开文件的路径是绝对路径还是相对路径
+<ul>
+<li>绝对路径使用<code>open</code>和<code>openat</code>都可以</li>
+<li>对于相对路径而言，如果相对于当前目录，则可以使用<code>open</code>，但大部分情况而言还是<code>openat</code>适用性更广（相对于当前目录可以传递<code>AT_FDCWD</code>给<code>dirfd</code>参数）</li>
+</ul>
+</li>
+<li>打开文件是否需要读、写
+<ul>
+<li>只需要读，<code>flags</code>加入标志位<code>O_RDONLY</code></li>
+<li>只需要写，<code>flags</code>加入标志位<code>O_WDONLY</code></li>
+<li>既需要读，又需要写，<code>flags</code>加入标志位<code>O_RDWR</code></li>
+</ul>
+</li>
+<li>对于可能会产生子进程并使用<code>exec</code>函数族的程序，<code>flags</code>加入标志位<code>O_CLOEXEC</code></li>
+<li>如果需要对文件进行写入：
+<ul>
+<li>如果需要在写之前清空文件内容，<code>flags</code>加入标志位<code>O_TRUNC</code></li>
+<li>如果需要在文件末尾追加，<code>flags</code>加入标志位<code>O_APPEND</code></li>
+<li>如果文件不存在的时候需要创建文件，<code>flags</code>加入标志位<code>O_CREAT</code>，并且传递相应的文件模式标志位给<code>mode</code></li>
+</ul>
+</li>
+</ol>
+<p>以下几种都是合理的使用方式：</p>
+<pre><code class="language-c">int fd1 = open(filename, O_RDONLY);
+int fd2 = open(filename, O_RDWR | O_APPEND);
+int fd3 = open(filename, O_WDONLY | O_CLOEXEC | O_TRUNC);
+</code></pre>
+<h3 id="实现"><a class="header" href="#实现">实现</a></h3>
+<p><code>open</code>和<code>openat</code>的实现均位于<code>fs/open.c</code>文件中，与其相关的函数是<code>do_sys_open</code>:</p>
+<pre><code class="language-c">long do_sys_open(int dfd, const char __user *filename, int flags, umode_t mode)
+{
+	struct open_flags op;
+	int fd = build_open_flags(flags, mode, &amp;op);
+	struct filename *tmp;
+
+	if (fd)
+		return fd;
+
+	tmp = getname(filename);
+	if (IS_ERR(tmp))
+		return PTR_ERR(tmp);
+
+	fd = get_unused_fd_flags(flags);
+	if (fd &gt;= 0) {
+		struct file *f = do_filp_open(dfd, tmp, &amp;op);
+		if (IS_ERR(f)) {
+			put_unused_fd(fd);
+			fd = PTR_ERR(f);
+		} else {
+			fsnotify_open(f);
+			fd_install(fd, f);
+		}
+	}
+	putname(tmp);
+	return fd;
+}
+</code></pre>
+<p>由其实现可知，无论路径是否一样，<code>flag</code>是否相同，<code>open</code>总会使用新的文件描述符。也就是说：</p>
+<pre><code class="language-c">int a = open(&quot;./text.txt&quot;, O_RDONLY);
+int b = open(&quot;./text.txt&quot;, O_RDONLY);
+</code></pre>
+<p>尽管调用参数一样，<code>a</code>和<code>b</code>依然是不同的。</p>
+<p>此外，这个函数调用了<code>do_filp_open</code>函数作为真正的操作，而其核心是实现在<code>fs/namei.c</code>的函数<code>path_openat</code>:</p>
+<pre><code class="language-c">static struct file *path_openat(struct nameidata *nd, const struct open_flags *op, unsigned flags)
+{
+	struct file *file;
+	int error;
+
+	file = alloc_empty_file(op-&gt;open_flag, current_cred());
+	if (IS_ERR(file))
+		return file;
+
+	if (unlikely(file-&gt;f_flags &amp; __O_TMPFILE)) {
+		error = do_tmpfile(nd, flags, op, file);
+	} else if (unlikely(file-&gt;f_flags &amp; O_PATH)) {
+		error = do_o_path(nd, flags, file);
+	} else {
+		const char *s = path_init(nd, flags);
+		while (!(error = link_path_walk(s, nd)) &amp;&amp;
+			(error = do_last(nd, file, op)) &gt; 0) {
+			nd-&gt;flags &amp;= ~(LOOKUP_OPEN|LOOKUP_CREATE|LOOKUP_EXCL);
+			s = trailing_symlink(nd);
+		}
+		terminate_walk(nd);
+	}
+	if (likely(!error)) {
+		if (likely(file-&gt;f_mode &amp; FMODE_OPENED))
+			return file;
+		WARN_ON(1);
+		error = -EINVAL;
+	}
+	fput(file);
+	if (error == -EOPENSTALE) {
+		if (flags &amp; LOOKUP_RCU)
+			error = -ECHILD;
+		else
+			error = -ESTALE;
+	}
+	return ERR_PTR(error);
+}
+</code></pre>
+<p>可见对于大部分情况而言，就是按照符号链接的路径找到最终的文件，然后用<code>do_last</code>打开文件。</p>
+<h2 id="name_to_handle_at与open_by_handle_at"><a class="header" href="#name_to_handle_at与open_by_handle_at"><code>name_to_handle_at</code>与<code>open_by_handle_at</code></a></h2>
+<h3 id="系统调用号-1"><a class="header" href="#系统调用号-1">系统调用号</a></h3>
+<p><code>name_to_handle_at</code>为303，<code>open_by_handle_at</code>为304。</p>
+<h3 id="函数原型-1"><a class="header" href="#函数原型-1">函数原型</a></h3>
+<h4 id="内核接口-1"><a class="header" href="#内核接口-1">内核接口</a></h4>
+<pre><code class="language-c">asmlinkage long sys_name_to_handle_at(int dfd, const char __user *name, struct file_handle __user *handle, int __user *mnt_id, int flag);
+asmlinkage long sys_open_by_handle_at(int mountdirfd, struct file_handle __user *handle, int flags);
+</code></pre>
+<h4 id="glibc封装-1"><a class="header" href="#glibc封装-1">glibc封装</a></h4>
+<pre><code class="language-c">#define _GNU_SOURCE
+#include &lt;sys/types.h&gt;
+#include &lt;sys/stat.h&gt;
+#include &lt;fcntl.h&gt;
+int name_to_handle_at(int dirfd, const char *pathname, struct file_handle *handle, int *mount_id, int flags);
+int open_by_handle_at(int mount_fd, struct file_handle *handle, int flags);
+</code></pre>
+<h3 id="简介-1"><a class="header" href="#简介-1">简介</a></h3>
+<p><code>name_to_handle_at</code>和<code>open_by_handle_at</code>将<code>openat</code>的功能解耦成两部分：</p>
+<pre><code class="language-plaintext">filename ----openat----&gt; file descriptor
+filename ----name_to_handle_at----&gt; file handle + mount id ----open_by_handle_at----&gt; file descriptor
+</code></pre>
+<p><code>openat</code>将输入的文件路径转化为文件描述符输出，而<code>name_to_handle_at</code>将输入的文件路径转化为文件句柄和挂载ID输出，而<code>open_by_handle_at</code>将输入的文件句柄和挂载ID转化为文件描述符输出。</p>
+<p>这样做看似多此一举，但是在构造无状态的文件服务器时很有用。假设我们的文件服务器是使用<code>openat</code>作为打开文件的方式：</p>
+<ol>
+<li>方案一
+<ul>
+<li>步骤
+<ol>
+<li>服务器告诉客户端文件路径</li>
+<li>客户端告诉服务器，想要修改的文件路径，和修改的内容</li>
+<li>服务器使用<code>openat</code>打开相应文件路径，然后对文件进行修改</li>
+</ol>
+</li>
+<li>假设服务器告诉客户端我们的文件路径为<code>path/text.txt</code>，在客户端发送修改指令之前，又有另一个客户端将这个文件移动到了<code>path2/text.txt</code>，那么客户端的修改就失败了，因为<code>openat</code>无法打开相应的文件</li>
+</ul>
+</li>
+<li>方案二
+<ul>
+<li>步骤
+<ol>
+<li>服务器用<code>openat</code>打开文件路径，告诉客户端文件描述符</li>
+<li>客户端告诉服务器，想要修改的文件描述符，和修改的内容</li>
+<li>服务器对相应的文件描述符作出相应的修改</li>
+</ol>
+</li>
+<li>由于文件描述符在文件移动后依然有效，所以这么做确实可以避免方案一的问题。但是，我们的服务器就成了一个有状态的服务器。因为程序一旦挂掉，那么所有文件描述符都会失效</li>
+</ul>
+</li>
+</ol>
+<p>因此，用<code>openat</code>并不能完美解决无状态文件服务器的问题。但是，我们用<code>name_to_handle_at</code>和<code>open_by_handle_at</code>的方案为：</p>
+<ol>
+<li>服务器用<code>name_to_handle_at</code>打开文件路径，告诉客户端文件句柄和挂载ID</li>
+<li>客户端告诉服务器，想要修改的文件句柄和挂载ID，和修改的内容</li>
+<li>服务器使用<code>open_by_handle_at</code>打开相应的文件，获得文件描述符，进行进一步的修改</li>
+</ol>
+<p>这一方案和方案二看起来很类似，但实际上有一点不同：文件句柄和挂载ID是由操作系统维护的，而不需要服务器维护。也就是说，只要是在同一操作系统中，所有的进程通过文件句柄和挂载ID打开的文件一定相同。</p>
+<p><code>name_to_handle_at</code>的具体行为，由<code>dirfd</code>, <code>pathname</code>和<code>flags</code>共同控制：</p>
+<ul>
+<li>如果<code>pathname</code>是绝对路径，则返回对应的文件句柄和挂载ID，忽略<code>dirfd</code></li>
+<li>如果<code>pathname</code>是相对路径，则返回该路径相对于<code>dirfd</code>（若值为<code>AT_FDCWD</code>则是当前目录）对应的文件的文件句柄和挂载ID</li>
+<li>如果<code>pathname</code>解析出来是符号链接，且<code>flags</code>包含标志位<code>AT_SYMLINK_FOLLOW</code>，则继续找该符号链接引用的真实文件，并返回真实文件的文件句柄和挂载ID</li>
+<li>如果<code>pathname</code>为空字符串，且<code>flags</code>包含控制位<code>AT_EMPTY_PATH</code>，则返回对应于文件描述符<code>dirfd</code>的文件句柄和挂载ID（此时<code>dirfd</code>可以为任意文件类型的描述符，不一定是目录的文件描述符）</li>
+</ul>
+<p><code>open_by_handle_at</code>的<code>flags</code>则和<code>openat</code>的<code>flags</code>含义相同，为打开文件的方式。</p>
+<h3 id="用法-1"><a class="header" href="#用法-1">用法</a></h3>
+<p><code>struct file_handle</code>的定义为</p>
+<pre><code class="language-c">struct file_handle {
+	unsigned int  handle_bytes;
+	int           handle_type;
+	unsigned char f_handle[0];
+};
+</code></pre>
+<p>其中<code>f_handle</code>字段是变长数组。当我们使用<code>name_to_handle_at</code>时，首先需要将<code>handle</code>的<code>handle_bytes</code>字段置0，传入后，<code>name_to_handle_at</code>将返回-1，同时<code>errno</code>会被置为<code>EOVERFLOW</code>，同时<code>handle</code>的<code>handle_bytes</code>字段会被置为其需要的大小，然后我们再根据这个大小分配相应的空间给<code>handle</code>，再次传入即可：</p>
+<pre><code class="language-c">char filename[] = &quot;./text.txt&quot;;
+struct file_handle tmp_handle;
+tmp_handle.handle_bytes = 0;
+if (name_to_handle_at(filename, AT_FDCWD, &amp;tmp_handle, NULL, 0) != -1 || errno != EOVERFLOW) {
+	exit(-1); // Unexpected behavior
+}
+struct file_handle *handle = (struct file_handle *)malloc(tmp_handle.handle_bytes);
+handle-&gt;handle_bytes = tmp_handle.handle_bytes;
+int mount_id;
+name_to_handle_at(filename, AT_FDCWD, handle, &amp;mount_id, 0);
+</code></pre>
+<p>而<code>open_by_handle_at</code>则相对比较简单：</p>
+<pre><code class="language-c">int fd = open_by_handle_at(mount_id, handle, O_RDONLY);
+</code></pre>
+<h3 id="实现-1"><a class="header" href="#实现-1">实现</a></h3>
+<p><code>name_to_handle_at</code>和<code>open_by_handle_at</code>的实现均位于<code>fs/fhandle.c</code>中。<code>name_to_handle_at</code>的核心为位于<code>fs/exportfs/expfs.c</code>中的<code>exportfs_encode_inode_fh</code>:</p>
+<pre><code class="language-c">int exportfs_encode_inode_fh(struct inode *inode, struct fid *fid, int *max_len, struct inode *parent)
+{
+	const struct export_operations *nop = inode-&gt;i_sb-&gt;s_export_op;
+
+	if (nop &amp;&amp; nop-&gt;encode_fh)
+		return nop-&gt;encode_fh(inode, fid-&gt;raw, max_len, parent);
+
+	return export_encode_fh(inode, fid, max_len, parent);
+}
+</code></pre>
+<p><code>open_by_handle_at</code>的核心为位于<code>fs/exportfs/expfs.c</code>中的<code>exportfs_decode_fh</code>:</p>
+<pre><code class="language-c">struct dentry *exportfs_decode_fh(struct vfsmount *mnt, struct fid *fid, int fh_len, int fileid_type, int (*acceptable)(void *, struct dentry *), void *context)
+{
+	const struct export_operations *nop = mnt-&gt;mnt_sb-&gt;s_export_op;
+	// ...
+	result = nop-&gt;fh_to_dentry(mnt-&gt;mnt_sb, fid, fh_len, fileid_type);
+	// ...
+}
+</code></pre>
+<p>由此可见，其关键在于<code>export_operations</code>这个结构体。通过位于内核源码<code>Documentation/filesystems/nfs/exporting.rst</code>的文档我们可以知道：</p>
+<blockquote>
+<p>encode_fh (optional)</p>
+<p>Takes a dentry and creates a filehandle fragment which can later be used to find or create a dentry for the same object. The default implementation creates a filehandle fragment that encodes a 32bit inode and generation number for the inode encoded, and if necessary the same information for the parent.</p>
+<p>fh_to_dentry (mandatory)</p>
+<p>Given a filehandle fragment, this should find the implied object and create a dentry for it (possibly with d_obtain_alias).</p>
+</blockquote>
+<p>用于产生文件句柄的<code>encode_fh</code>函数指针，其默认实现是和inode直接相关的，所以确实可以看作是由操作系统来维护这个文件句柄的。</p>
+<h2 id="open_tree"><a class="header" href="#open_tree"><code>open_tree</code></a></h2>
+<h3 id="系统调用号-2"><a class="header" href="#系统调用号-2">系统调用号</a></h3>
+<p>428</p>
+<h3 id="函数原型-2"><a class="header" href="#函数原型-2">函数原型</a></h3>
+<h4 id="内核接口-2"><a class="header" href="#内核接口-2">内核接口</a></h4>
+<pre><code class="language-c">asmlinkage long sys_open_tree(int dfd, const char __user *path, unsigned flags);
+</code></pre>
+<h4 id="glibc封装-2"><a class="header" href="#glibc封装-2">glibc封装</a></h4>
+<p>无glibc封装，需要手动调用<code>syscall</code>。</p>
+<h3 id="简介-2"><a class="header" href="#简介-2">简介</a></h3>
+<p>该系统调用的介绍在网络上较少，可以参考<a href="https://lkml.org/lkml/2018/9/21/884">lkml.org</a>。</p>
+<p>我们可以将该系统调用看作包含<code>O_PATH</code>标志位，用<code>open</code>或<code>openat</code>打开。也就是说，只在文件系统中标记该位置，而不打开相应的内容，产生的文件描述符只能供少部分在文件层次进行的操作使用。</p>
+<p>当<code>flags</code>包含标志位<code>OPEN_TREE_CLONE</code>时，情况会稍微复杂一些。此时，<code>open_tree</code>会产生一个游离的(detached)挂载树，该挂载树对应的就是<code>dfd</code>和<code>path</code>决定的路径上的子树。如果还包含<code>AT_RECURSIVE</code>标志位，则整个子树都将被复制，否则就只复制目标挂载点内的部分。<code>OPEN_TREE_CLONE</code>标志位可以看作<code>mount --bind</code>，而<code>OPEN_TREE_CLONE | AT_RECURSIVE</code>标志位可以看作<code>mount --rbind</code>。</p>
+<h3 id="实现-2"><a class="header" href="#实现-2">实现</a></h3>
+<p>位于<code>fs/namespace.c</code>文件中，其核心语句为</p>
+<pre><code class="language-c">file = dentry_open(&amp;path, O_PATH, current_cred());
+</code></pre>
+<p>也就是通过<code>O_PATH</code>标志位打开相应的文件。</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                        
+                            <a rel="prev" href="../../src/introduction.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+                        
+
+                        
+                            <a rel="next" href="../../src/filesystem/close.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+                        
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                
+                    <a rel="prev" href="../../src/introduction.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+                
+
+                
+                    <a rel="next" href="../../src/filesystem/close.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+                
+            </nav>
+
+        </div>
+
+        
+
+        
+
+        
+
+        
+        <script type="text/javascript">
+            window.playground_copyable = true;
+        </script>
+        
+
+        
+
+        
+        <script src="../../elasticlunr.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="../../mark.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="../../searcher.js" type="text/javascript" charset="utf-8"></script>
+        
+
+        <script src="../../clipboard.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="../../highlight.js" type="text/javascript" charset="utf-8"></script>
+        <script src="../../book.js" type="text/javascript" charset="utf-8"></script>
+
+        <!-- Custom JS scripts -->
+        
+
+        
+
+    </body>
+</html>
