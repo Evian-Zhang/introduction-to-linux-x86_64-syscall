@@ -99,7 +99,7 @@ int eventfd(unsigned int initval, int flags);
 
 使用效果：
 
-```
+```plaintext
 $ ./a.out 1 2 4 7 14
 Child writing 1 to efd
 Child writing 2 to efd
