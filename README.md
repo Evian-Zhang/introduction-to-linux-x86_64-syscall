@@ -30,6 +30,16 @@ git config submodule.glibc.url https://mirrors.tuna.tsinghua.edu.cn/git/glibc.gi
 git pull --recurse-submodules
 ```
 
+## 构建
+
+请安装[mdBook](https://github.com/rust-lang/mdBook)后，在项目根目录下使用
+
+```shell
+mdbook build
+```
+
+请注意，如果您使用了`--recurse-submodules`命令克隆本仓库，从而在本地仓库中包含了全部的Linux和glibc源码，请不要使用上述命令构建。因为`mdBook`目前会将项目根目录中所有的文件都拷贝进输出的构建目录中。
+
 ## 系统调用对照表
 
 每个系统调用名都超链接到了其在本仓库中对应的文章。
