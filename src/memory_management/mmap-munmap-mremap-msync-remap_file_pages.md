@@ -231,3 +231,60 @@ static int ext4_file_mmap(struct file *file, struct vm_area_struct *vma)
 ```
 
 可以看到，在通常情况下，是使用`ext4_filemap_fault`作为我们之前讲的`vm_operations_struct`中的`fault`字段。这个函数最终会被落实到`mm/filemap.c`的`filemap_fault`函数。在这个函数中，如果这个文件在内核的页缓存中，则直接去找那个页即可。如果没有，则调用`pagecache_get_page`，最终使用`__add_to_page_cache_locked`创建相应的页。
+
+## `munmap`
+
+### 系统调用号
+
+11
+
+### 函数签名
+
+#### 内核接口
+
+```c
+asmlinkage long sys_munmap(unsigned long addr, size_t len);
+```
+
+#### glibc封装
+
+```c
+#include <sys/mman.h>
+int munmap(void *addr, size_t length);
+```
+
+### 简介
+
+在使用`mmap`将文件映射到内存空间之后，即使我们使用`close`关闭被映射的文件的描述符，该映射依然存在。如果需要取消相应的映射，我们可以使用`munmap`。
+
+`munmap`接受两个参数，表示需要取消映射的内存范围，其中，`addr`需要是页大小的整数倍。对于从`addr`开始，长度为`length`的内存区域，只要某个通过`mmap`建立的内存映射与该区域有交集，那么相应的内存映射就将被取消。
+
+### 实现
+
+`munmap`的实现位于Linux内核源码的`mm/mmap.c`文件中，其核心代码为`__do_munmap`函数：
+
+## `mremap`
+
+### 系统调用号
+
+25
+
+### 函数签名
+
+#### 内核接口
+
+```c
+asmlinkage long sys_mremap(unsigned long addr, unsigned long old_len, unsigned long new_len, unsigned long flags, unsigned long new_addr);
+```
+
+#### glibc封装
+
+```c
+#define _GNU_SOURCE
+#include <sys/mman.h>
+void *mremap(void *old_address, size_t old_size, size_t new_size, int flags, ... /* void *new_address */);
+```
+
+### 简介
+
+
