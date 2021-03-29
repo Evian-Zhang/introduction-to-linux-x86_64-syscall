@@ -173,7 +173,7 @@ syscall
 </code></pre>
 <p><code>syscall</code>这个指令会先查看此时RAX的值，然后找到系统调用号为那个值的系统调用，然后执行相应的系统调用。我们可以在系统调用列表中找到，<code>fork</code>这个系统调用的系统调用号是57。于是，我们把57放入<code>rax</code>寄存器中，然后使用了<code>syscall</code>指令。这就是让内核执行了<code>fork</code>。</p>
 <h2 id="调用约定"><a class="header" href="#调用约定">调用约定</a></h2>
-<p>提到这个，就不得不说Linux x86_64的调用约定。我们知道，系统调用往往会有许多参数，比如说<code>open</code>这个打开文件的系统操作，我们可以在<code>include/linux/syscall.h</code>中找到其对应的C语言接口为</p>
+<p>提到这个，就不得不说Linux x86_64的调用约定。我们知道，系统调用往往会有许多参数，比如说<code>open</code>这个打开文件的系统操作，我们可以在<code>include/linux/syscalls.h</code>中找到其对应的C语言接口为</p>
 <pre><code class="language-c">asmlinkage long sys_open(const char __user *filename, int flags, umode_t mode);
 </code></pre>
 <p>它接受三个参数。那么，参数传递是按照什么规定呢？事实上，当涉及到系统调用时，调用约定与用户态程序一般的调用约定并不相同。在<a href="https://gitlab.com/x86-psABIs/x86-64-ABI">System V Application Binary Interface AMD64 Architecture Processor Supplement</a>的A.2.1节中我们可以看到：</p>
@@ -251,7 +251,7 @@ long my_open(const char *pathname, int flags, mode_t mode) {
 <p>然后在<code>syscall-wrapper-test</code>这个可执行程序中就可以看到直接的<code>syscall</code>了。</p>
 <p>对glibc的动态链接和静态链接各有利弊。对于恶意软件编写者来说，他们往往倾向于静态链接恶意软件。这是因为，分析者可以轻松地写一个动态链接库，将其使用的glibc中的API hook住，改变其行为，使它达不成目的。而如果静态链接，那么分析者只有通过修改内核等比较麻烦的方案才能改变其行为。而静态链接的坏处则在于，如果简单地使用<code>-static</code>选项进行静态链接，就是把整个库都链接进最终的可执行程序中。这会导致库中许多没有被用到的函数的代码也在可执行程序中，使可执行程序的体积增大。解决方案可以参考gcc的官方文档<a href="https://gcc.gnu.org/onlinedocs/gnat_ugn/Compilation-options.html">Compilation-options</a>。</p>
 <h2 id="内核接口"><a class="header" href="#内核接口">内核接口</a></h2>
-<p>我们之前提到，在Linux内核中，可以在<code>include/linux/syscall.h</code>文件中找到系统调用函数的声明（会加上<code>sys_</code>前缀）。而其实现则是使用<code>SYSCALL_DEFINEn</code>这个宏。比如说，我们在<code>fs/open.c</code>中可以看到</p>
+<p>我们之前提到，在Linux内核中，可以在<code>include/linux/syscalls.h</code>文件中找到系统调用函数的声明（会加上<code>sys_</code>前缀）。而其实现则是使用<code>SYSCALL_DEFINEn</code>这个宏。比如说，我们在<code>fs/open.c</code>中可以看到</p>
 <pre><code class="language-c">SYSCALL_DEFINE3(open, const char __user *, filename, int, flags, umode_t, mode)
 {
 	/* ... */

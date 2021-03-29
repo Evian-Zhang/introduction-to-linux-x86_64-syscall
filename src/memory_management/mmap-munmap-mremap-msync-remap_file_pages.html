@@ -365,6 +365,35 @@ static int ext4_file_mmap(struct file *file, struct vm_area_struct *vma)
 }
 </code></pre>
 <p>可以看到，在通常情况下，是使用<code>ext4_filemap_fault</code>作为我们之前讲的<code>vm_operations_struct</code>中的<code>fault</code>字段。这个函数最终会被落实到<code>mm/filemap.c</code>的<code>filemap_fault</code>函数。在这个函数中，如果这个文件在内核的页缓存中，则直接去找那个页即可。如果没有，则调用<code>pagecache_get_page</code>，最终使用<code>__add_to_page_cache_locked</code>创建相应的页。</p>
+<h2 id="munmap"><a class="header" href="#munmap"><code>munmap</code></a></h2>
+<h3 id="系统调用号-1"><a class="header" href="#系统调用号-1">系统调用号</a></h3>
+<p>11</p>
+<h3 id="函数签名-1"><a class="header" href="#函数签名-1">函数签名</a></h3>
+<h4 id="内核接口-1"><a class="header" href="#内核接口-1">内核接口</a></h4>
+<pre><code class="language-c">asmlinkage long sys_munmap(unsigned long addr, size_t len);
+</code></pre>
+<h4 id="glibc封装-1"><a class="header" href="#glibc封装-1">glibc封装</a></h4>
+<pre><code class="language-c">#include &lt;sys/mman.h&gt;
+int munmap(void *addr, size_t length);
+</code></pre>
+<h3 id="简介-1"><a class="header" href="#简介-1">简介</a></h3>
+<p>在使用<code>mmap</code>将文件映射到内存空间之后，即使我们使用<code>close</code>关闭被映射的文件的描述符，该映射依然存在。如果需要取消相应的映射，我们可以使用<code>munmap</code>。</p>
+<p><code>munmap</code>接受两个参数，表示需要取消映射的内存范围，其中，<code>addr</code>需要是页大小的整数倍。对于从<code>addr</code>开始，长度为<code>length</code>的内存区域，只要某个通过<code>mmap</code>建立的内存映射与该区域有交集，那么相应的内存映射就将被取消。</p>
+<h3 id="实现-1"><a class="header" href="#实现-1">实现</a></h3>
+<p><code>munmap</code>的实现位于Linux内核源码的<code>mm/mmap.c</code>文件中，其核心代码为<code>__do_munmap</code>函数：</p>
+<h2 id="mremap"><a class="header" href="#mremap"><code>mremap</code></a></h2>
+<h3 id="系统调用号-2"><a class="header" href="#系统调用号-2">系统调用号</a></h3>
+<p>25</p>
+<h3 id="函数签名-2"><a class="header" href="#函数签名-2">函数签名</a></h3>
+<h4 id="内核接口-2"><a class="header" href="#内核接口-2">内核接口</a></h4>
+<pre><code class="language-c">asmlinkage long sys_mremap(unsigned long addr, unsigned long old_len, unsigned long new_len, unsigned long flags, unsigned long new_addr);
+</code></pre>
+<h4 id="glibc封装-2"><a class="header" href="#glibc封装-2">glibc封装</a></h4>
+<pre><code class="language-c">#define _GNU_SOURCE
+#include &lt;sys/mman.h&gt;
+void *mremap(void *old_address, size_t old_size, size_t new_size, int flags, ... /* void *new_address */);
+</code></pre>
+<h3 id="简介-2"><a class="header" href="#简介-2">简介</a></h3>
 
                     </main>
 

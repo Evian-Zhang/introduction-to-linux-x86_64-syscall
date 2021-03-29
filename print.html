@@ -248,7 +248,7 @@ syscall
 </code></pre>
 <p><code>syscall</code>这个指令会先查看此时RAX的值，然后找到系统调用号为那个值的系统调用，然后执行相应的系统调用。我们可以在系统调用列表中找到，<code>fork</code>这个系统调用的系统调用号是57。于是，我们把57放入<code>rax</code>寄存器中，然后使用了<code>syscall</code>指令。这就是让内核执行了<code>fork</code>。</p>
 <h2 id="调用约定"><a class="header" href="#调用约定">调用约定</a></h2>
-<p>提到这个，就不得不说Linux x86_64的调用约定。我们知道，系统调用往往会有许多参数，比如说<code>open</code>这个打开文件的系统操作，我们可以在<code>include/linux/syscall.h</code>中找到其对应的C语言接口为</p>
+<p>提到这个，就不得不说Linux x86_64的调用约定。我们知道，系统调用往往会有许多参数，比如说<code>open</code>这个打开文件的系统操作，我们可以在<code>include/linux/syscalls.h</code>中找到其对应的C语言接口为</p>
 <pre><code class="language-c">asmlinkage long sys_open(const char __user *filename, int flags, umode_t mode);
 </code></pre>
 <p>它接受三个参数。那么，参数传递是按照什么规定呢？事实上，当涉及到系统调用时，调用约定与用户态程序一般的调用约定并不相同。在<a href="https://gitlab.com/x86-psABIs/x86-64-ABI">System V Application Binary Interface AMD64 Architecture Processor Supplement</a>的A.2.1节中我们可以看到：</p>
@@ -326,7 +326,7 @@ long my_open(const char *pathname, int flags, mode_t mode) {
 <p>然后在<code>syscall-wrapper-test</code>这个可执行程序中就可以看到直接的<code>syscall</code>了。</p>
 <p>对glibc的动态链接和静态链接各有利弊。对于恶意软件编写者来说，他们往往倾向于静态链接恶意软件。这是因为，分析者可以轻松地写一个动态链接库，将其使用的glibc中的API hook住，改变其行为，使它达不成目的。而如果静态链接，那么分析者只有通过修改内核等比较麻烦的方案才能改变其行为。而静态链接的坏处则在于，如果简单地使用<code>-static</code>选项进行静态链接，就是把整个库都链接进最终的可执行程序中。这会导致库中许多没有被用到的函数的代码也在可执行程序中，使可执行程序的体积增大。解决方案可以参考gcc的官方文档<a href="https://gcc.gnu.org/onlinedocs/gnat_ugn/Compilation-options.html">Compilation-options</a>。</p>
 <h2 id="内核接口"><a class="header" href="#内核接口">内核接口</a></h2>
-<p>我们之前提到，在Linux内核中，可以在<code>include/linux/syscall.h</code>文件中找到系统调用函数的声明（会加上<code>sys_</code>前缀）。而其实现则是使用<code>SYSCALL_DEFINEn</code>这个宏。比如说，我们在<code>fs/open.c</code>中可以看到</p>
+<p>我们之前提到，在Linux内核中，可以在<code>include/linux/syscalls.h</code>文件中找到系统调用函数的声明（会加上<code>sys_</code>前缀）。而其实现则是使用<code>SYSCALL_DEFINEn</code>这个宏。比如说，我们在<code>fs/open.c</code>中可以看到</p>
 <pre><code class="language-c">SYSCALL_DEFINE3(open, const char __user *, filename, int, flags, umode_t, mode)
 {
 	/* ... */
@@ -3066,6 +3066,35 @@ static int ext4_file_mmap(struct file *file, struct vm_area_struct *vma)
 }
 </code></pre>
 <p>可以看到，在通常情况下，是使用<code>ext4_filemap_fault</code>作为我们之前讲的<code>vm_operations_struct</code>中的<code>fault</code>字段。这个函数最终会被落实到<code>mm/filemap.c</code>的<code>filemap_fault</code>函数。在这个函数中，如果这个文件在内核的页缓存中，则直接去找那个页即可。如果没有，则调用<code>pagecache_get_page</code>，最终使用<code>__add_to_page_cache_locked</code>创建相应的页。</p>
+<h2 id="munmap"><a class="header" href="#munmap"><code>munmap</code></a></h2>
+<h3 id="系统调用号-16"><a class="header" href="#系统调用号-16">系统调用号</a></h3>
+<p>11</p>
+<h3 id="函数签名-7"><a class="header" href="#函数签名-7">函数签名</a></h3>
+<h4 id="内核接口-16"><a class="header" href="#内核接口-16">内核接口</a></h4>
+<pre><code class="language-c">asmlinkage long sys_munmap(unsigned long addr, size_t len);
+</code></pre>
+<h4 id="glibc封装-16"><a class="header" href="#glibc封装-16">glibc封装</a></h4>
+<pre><code class="language-c">#include &lt;sys/mman.h&gt;
+int munmap(void *addr, size_t length);
+</code></pre>
+<h3 id="简介-16"><a class="header" href="#简介-16">简介</a></h3>
+<p>在使用<code>mmap</code>将文件映射到内存空间之后，即使我们使用<code>close</code>关闭被映射的文件的描述符，该映射依然存在。如果需要取消相应的映射，我们可以使用<code>munmap</code>。</p>
+<p><code>munmap</code>接受两个参数，表示需要取消映射的内存范围，其中，<code>addr</code>需要是页大小的整数倍。对于从<code>addr</code>开始，长度为<code>length</code>的内存区域，只要某个通过<code>mmap</code>建立的内存映射与该区域有交集，那么相应的内存映射就将被取消。</p>
+<h3 id="实现-15"><a class="header" href="#实现-15">实现</a></h3>
+<p><code>munmap</code>的实现位于Linux内核源码的<code>mm/mmap.c</code>文件中，其核心代码为<code>__do_munmap</code>函数：</p>
+<h2 id="mremap"><a class="header" href="#mremap"><code>mremap</code></a></h2>
+<h3 id="系统调用号-17"><a class="header" href="#系统调用号-17">系统调用号</a></h3>
+<p>25</p>
+<h3 id="函数签名-8"><a class="header" href="#函数签名-8">函数签名</a></h3>
+<h4 id="内核接口-17"><a class="header" href="#内核接口-17">内核接口</a></h4>
+<pre><code class="language-c">asmlinkage long sys_mremap(unsigned long addr, unsigned long old_len, unsigned long new_len, unsigned long flags, unsigned long new_addr);
+</code></pre>
+<h4 id="glibc封装-17"><a class="header" href="#glibc封装-17">glibc封装</a></h4>
+<pre><code class="language-c">#define _GNU_SOURCE
+#include &lt;sys/mman.h&gt;
+void *mremap(void *old_address, size_t old_size, size_t new_size, int flags, ... /* void *new_address */);
+</code></pre>
+<h3 id="简介-17"><a class="header" href="#简介-17">简介</a></h3>
 
                     </main>
 
