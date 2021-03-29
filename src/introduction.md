@@ -17,7 +17,7 @@ syscall
 
 ## 调用约定
 
-提到这个，就不得不说Linux x86_64的调用约定。我们知道，系统调用往往会有许多参数，比如说`open`这个打开文件的系统操作，我们可以在`include/linux/syscall.h`中找到其对应的C语言接口为
+提到这个，就不得不说Linux x86_64的调用约定。我们知道，系统调用往往会有许多参数，比如说`open`这个打开文件的系统操作，我们可以在`include/linux/syscalls.h`中找到其对应的C语言接口为
 
 ```c
 asmlinkage long sys_open(const char __user *filename, int flags, umode_t mode);
@@ -138,7 +138,7 @@ gcc syscall-wrapper-test.c -static -o syscall-wrapper-test
 
 ## 内核接口
 
-我们之前提到，在Linux内核中，可以在`include/linux/syscall.h`文件中找到系统调用函数的声明（会加上`sys_`前缀）。而其实现则是使用`SYSCALL_DEFINEn`这个宏。比如说，我们在`fs/open.c`中可以看到
+我们之前提到，在Linux内核中，可以在`include/linux/syscalls.h`文件中找到系统调用函数的声明（会加上`sys_`前缀）。而其实现则是使用`SYSCALL_DEFINEn`这个宏。比如说，我们在`fs/open.c`中可以看到
 
 ```c
 SYSCALL_DEFINE3(open, const char __user *, filename, int, flags, umode_t, mode)
